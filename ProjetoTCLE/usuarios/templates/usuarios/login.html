@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso - TCLE Digital</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body
+    class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 text-slate-900">
+
+    <div class="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+
+        <div class="space-y-6 text-center md:text-left">
+            <div class="flex items-center justify-center md:justify-start gap-3">
+                <div class="bg-blue-600 p-3 rounded-lg">
+                    <i data-lucide="file-text" class="w-8 h-8 text-white"></i>
+                </div>
+                <h1 class="text-3xl font-semibold text-slate-900">Sistema TCLE Digital</h1>
+            </div>
+
+            <div class="space-y-4">
+                <p class="text-slate-600 text-lg">
+                    Plataforma completa para gestão de Termos de Consentimento Livre e Esclarecido com assinatura
+                    digital.
+                </p>
+
+                <div class="space-y-3 pt-4">
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="shield" class="w-5 h-5 text-blue-600 mt-1 shrink-0"></i>
+                        <div>
+                            <p class="text-sm font-medium text-slate-700">Segurança e conformidade com LGPD</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="lock" class="w-5 h-5 text-blue-600 mt-1 shrink-0"></i>
+                        <div>
+                            <p class="text-sm font-medium text-slate-700">Assinatura digital com mesa digitalizadora</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="file-plus" class="w-5 h-5 text-blue-600 mt-1 shrink-0"></i>
+                        <div>
+                            <p class="text-sm font-medium text-slate-700">Biblioteca completa de templates
+                                personalizáveis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden">
+            <div class="p-6 sm:p-8">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-semibold text-slate-900">Acesso ao Sistema</h2>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Entre com suas credenciais para acessar o sistema
+                    </p>
+                </div>
+
+                <form method="POST" class="space-y-4">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    <div class="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg">
+                        Usuário ou senha incorretos. Tente novamente.
+                    </div>
+                    {% endif %}
+
+                    <div class="space-y-2">
+                        <label for="id_username" class="text-sm font-medium text-slate-900">Usuário</label>
+                        <input type="text" name="username" id="id_username" required
+                            class="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                            placeholder="Seu nome de usuário">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="id_password" class="text-sm font-medium text-slate-900">Senha</label>
+                        <input type="password" name="password" id="id_password" required
+                            class="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                            placeholder="••••••••">
+                    </div>
+
+                    <button type="submit"
+                        class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 bg-blue-900 text-white hover:bg-blue-800 h-10 px-4 py-2 mt-4">
+                        Entrar no Sistema
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-slate-50 p-4 border-t border-slate-100">
+                <p class="text-xs text-slate-500 text-center">
+                    Sistema protegido e criptografado.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
