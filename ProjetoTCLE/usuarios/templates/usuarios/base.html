@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCLE Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900 h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR (Menu Lateral) -->
+    <aside class="w-64 bg-white border-r border-slate-200 h-screen flex flex-col">
+        <!-- Cabeçalho da Sidebar -->
+        <div class="p-6 border-b border-slate-200">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
+                </div>
+                <h2 class="font-semibold text-lg">TCLE Digital</h2>
+            </div>
+
+            <!-- Dados do Usuário Logado -->
+            <div class="space-y-1">
+                <p class="text-sm font-medium text-slate-900">{{ request.user.nome }}</p>
+
+                <!-- Badge colorida dependendo do Perfil -->
+                {% if request.user.perfil == 'ADMIN' %}
+                <span
+                    class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Administrador</span>
+                {% else %}
+                <span
+                    class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Usuário
+                    Padrão</span>
+                {% endif %}
+
+                {% if request.user.profissao %}
+                <p class="text-xs text-slate-500 mt-1">{{ request.user.profissao }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Links do Menu -->
+        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <a href="{% url 'dashboard' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3"></i> Dashboard
+            </a>
+            <a href="{% url 'pacientes' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="users" class="w-4 h-4 mr-3"></i> Pacientes
+            </a>
+            <a href="#"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="file-text" class="w-4 h-4 mr-3"></i> Biblioteca TCLE
+            </a>
+            <a href="#"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="file-plus" class="w-4 h-4 mr-3"></i> Gerar TCLE
+            </a>
+            <a href="#"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="history" class="w-4 h-4 mr-3"></i> Histórico
+            </a>
+
+            <!-- ÁREA RESTRITA AO ADMIN -->
+            {% if request.user.perfil == 'ADMIN' %}
+            <div class="pt-4 mt-4 border-t border-slate-200">
+                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Administração</p>
+                <a href="#"
+                    class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 mr-3"></i> Relatórios
+                </a>
+                <a href="{% url 'gerenciar_equipe' %}"
+                    class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                    <i data-lucide="shield" class="w-4 h-4 mr-3"></i> Usuários e Equipe
+                </a>
+            </div>
+            {% endif %}
+        </nav>
+
+        <!-- Rodapé do Menu (Botão Sair) -->
+        <div class="p-4 border-t border-slate-200">
+            <!-- No Django moderno, o logout deve ser feito via formulário POST por segurança -->
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit"
+                    class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-red-600 hover:bg-red-50 hover:text-red-700">
+                    <i data-lucide="log-out" class="w-4 h-4 mr-3"></i> Sair do Sistema
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL (Aqui as outras telas vão se encaixar) -->
+    <main class="flex-1 overflow-y-auto">
+        {% block conteudo %}
+        <!-- O conteúdo da tela de Dashboard vai entrar exatamente aqui -->
+        {% endblock %}
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

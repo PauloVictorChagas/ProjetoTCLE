@@ -1,0 +1,138 @@
+{% extends 'usuarios/base.html' %}
+
+{% block conteudo %}
+<div class="p-8">
+    <!-- Cabeçalho -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-semibold mb-2">Pacientes</h1>
+        <p class="text-slate-600">Cadastre e gerencie a base de pacientes do hospital/clínica.</p>
+    </div>
+
+    <!-- Alertas -->
+    {% if messages %}
+    {% for message in messages %}
+    <div
+        class="mb-6 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% else %}bg-red-50 text-red-800 border-red-200{% endif %} border">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- COLUNA 1: Formulário -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-8">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="font-semibold text-lg flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-blue-600"></i>
+                        Novo Paciente
+                    </h2>
+                </div>
+
+                <div class="p-6">
+                    <form method="POST" class="space-y-4">
+                        {% csrf_token %}
+
+                        <div class="space-y-1">
+                            <label class="text-sm font-medium text-slate-700">Nome Completo *</label>
+                            <input type="text" name="nome" required
+                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-sm font-medium text-slate-700">CPF *</label>
+                                <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14"
+                                    class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-sm font-medium text-slate-700">Data Nasc. *</label>
+                                <input type="date" name="data_nascimento" required
+                                    class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-sm font-medium text-slate-700">Telefone *</label>
+                            <input type="text" name="telefone" required placeholder="(11) 90000-0000"
+                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-sm font-medium text-slate-700">E-mail (Opcional)</label>
+                            <input type="email" name="email"
+                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-sm font-medium text-slate-700">Endereço (Opcional)</label>
+                            <input type="text" name="endereco"
+                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                        </div>
+
+                        <button type="submit"
+                            class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors mt-2">
+                            Salvar Paciente
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA 2: Tabela de Pacientes -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h2 class="font-semibold text-lg flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+                        Pacientes Cadastrados
+                    </h2>
+                    <span class="bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded-full font-medium">{{
+                        pacientes.count }} registros</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-4 font-medium">Paciente</th>
+                                <th class="px-6 py-4 font-medium">Contato</th>
+                                <th class="px-6 py-4 font-medium">Data Cadastro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for paciente in pacientes %}
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="px-6 py-4">
+                                    <p class="font-medium text-slate-900">{{ paciente.nome }}</p>
+                                    <p class="text-xs text-slate-500">CPF: {{ paciente.cpf }}</p>
+                                    <p class="text-xs text-slate-500">Nasc: {{ paciente.data_nascimento|date:"d/m/Y" }}
+                                    </p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <p>{{ paciente.telefone }}</p>
+                                    <p class="text-xs text-slate-500">{{ paciente.email|default:"Sem e-mail" }}</p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ paciente.criado_em|date:"d/m/Y" }}
+                                    <p class="text-xs text-slate-400">Por: {{ paciente.criado_por.nome|default:"Sistema"
+                                        }}</p>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-6 py-12 text-center text-slate-500">
+                                    <i data-lucide="users" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+                                    Nenhum paciente cadastrado no sistema.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

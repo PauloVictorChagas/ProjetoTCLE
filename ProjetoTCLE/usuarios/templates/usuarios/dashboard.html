@@ -1,0 +1,55 @@
+<!-- 1. Avisa o Django que esta tela usa o esqueleto do base.html -->
+{% extends 'usuarios/base.html' %}
+<!-- 2. Diz qual conteúdo deve ser jogado dentro do main -->
+{% block conteudo %}
+<div class="p-8">
+
+    <!-- Cabeçalho -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-semibold mb-2">Bem-vindo(a), {{ request.user.nome }}!</h1>
+        <p class="text-slate-600">Visão geral do sistema de TCLE</p>
+    </div>
+
+    <!-- Cards de Estatísticas (Dados Fixos por enquanto) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+                <h3 class="text-sm font-medium text-slate-700">Total de TCLEs</h3>
+                <i data-lucide="file-text" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <div class="text-2xl font-bold">0</div>
+            <p class="text-xs text-slate-500 mt-1">Gerados no sistema</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+                <h3 class="text-sm font-medium text-slate-700">Pacientes Cadastrados</h3>
+                <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <div class="text-2xl font-bold">0</div>
+            <p class="text-xs text-slate-500 mt-1">Total na base de dados</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+                <h3 class="text-sm font-medium text-slate-700">TCLEs Assinados</h3>
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+            </div>
+            <div class="text-2xl font-bold">0</div>
+            <p class="text-xs text-slate-500 mt-1">Documentos finalizados</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+                <h3 class="text-sm font-medium text-slate-700">Pendentes</h3>
+                <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
+            </div>
+            <div class="text-2xl font-bold">0</div>
+            <p class="text-xs text-slate-500 mt-1">Aguardando assinatura</p>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acesso - TCLE Digital</title>
 
+    <!-- Importando o Tailwind CSS direto para o navegador -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Importando os Ícones (Lucide) -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
@@ -16,6 +18,7 @@
 
     <div class="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
 
+        <!-- Lado Esquerdo - Informações -->
         <div class="space-y-6 text-center md:text-left">
             <div class="flex items-center justify-center md:justify-start gap-3">
                 <div class="bg-blue-600 p-3 rounded-lg">
@@ -54,6 +57,7 @@
             </div>
         </div>
 
+        <!-- Lado Direito - Formulário de Login (Card) -->
         <div class="bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden">
             <div class="p-6 sm:p-8">
                 <div class="mb-6">
@@ -63,22 +67,28 @@
                     </p>
                 </div>
 
+                <!-- Formulário Django -->
                 <form method="POST" class="space-y-4">
+                    <!-- Token de Segurança -->
                     {% csrf_token %}
 
+                    <!-- Mensagem de Erro do Django -->
                     {% if form.errors %}
                     <div class="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg">
-                        Usuário ou senha incorretos. Tente novamente.
+                        E-mail ou senha incorretos. Tente novamente.
                     </div>
                     {% endif %}
 
+                    <!-- Campo E-mail -->
                     <div class="space-y-2">
-                        <label for="id_username" class="text-sm font-medium text-slate-900">Usuário</label>
-                        <input type="text" name="username" id="id_username" required
+                        <label for="id_username" class="text-sm font-medium text-slate-900">E-mail</label>
+                        <!-- type="email" força a validação no navegador. name="username" precisa ser mantido para o Django entender -->
+                        <input type="email" name="username" id="id_username" required
                             class="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                            placeholder="Seu nome de usuário">
+                            placeholder="seu.email@hospital.com">
                     </div>
 
+                    <!-- Campo Senha -->
                     <div class="space-y-2">
                         <label for="id_password" class="text-sm font-medium text-slate-900">Senha</label>
                         <input type="password" name="password" id="id_password" required
@@ -102,6 +112,7 @@
 
     </div>
 
+    <!-- Script para ativar os ícones Lucide -->
     <script>
         lucide.createIcons();
     </script>

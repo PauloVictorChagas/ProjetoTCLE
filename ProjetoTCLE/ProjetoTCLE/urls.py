@@ -1,11 +1,19 @@
-# urls.py principal
-
 from django.contrib import admin
 from django.urls import path
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, LogoutView
+from usuarios import views
+from pacientes import views as pacientes_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Rota para a nossa tela de login
     path('login/', LoginView.as_view(template_name='usuarios/login.html'), name='login'),
+    # Rota de Logout (Sair) - O next_page diz para onde ir depois de sair
+    path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
+    # Rota do Dashboard (Página Inicial será a barra vazia '')
+    path('', views.dashboard, name='dashboard'),
+    # Rota para tela de Gerenciar usuarios
+    path('equipe/', views.gerenciar_equipe, name='gerenciar_equipe'),
+    # Rota para tela de Cadastro de pacientes
+    path('pacientes/', pacientes_views.gerenciar_pacientes, name='pacientes'),
 ]
