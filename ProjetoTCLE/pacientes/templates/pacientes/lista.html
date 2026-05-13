@@ -1,138 +1,277 @@
 {% extends 'usuarios/base.html' %}
 
 {% block conteudo %}
-<div class="p-8">
+<div class="p-8 max-w-7xl mx-auto">
+
     <!-- Cabeçalho -->
-    <div class="mb-8">
-        <h1 class="text-2xl font-semibold mb-2">Pacientes</h1>
-        <p class="text-slate-600">Cadastre e gerencie a base de pacientes do hospital/clínica.</p>
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-semibold text-slate-900 mb-1">Cadastro de Pacientes</h1>
+            <p class="text-slate-500 text-lg">Gerencie os dados dos pacientes</p>
+        </div>
+        <button onclick="abrirModal('modalCadastro')"
+            class="bg-slate-950 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Novo Paciente
+        </button>
     </div>
 
-    <!-- Alertas -->
+    <!-- Alertas do Django -->
     {% if messages %}
     {% for message in messages %}
     <div
-        class="mb-6 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% else %}bg-red-50 text-red-800 border-red-200{% endif %} border">
+        class="mb-6 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
         {{ message }}
     </div>
     {% endfor %}
     {% endif %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- COLUNA 1: Formulário -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-8">
-                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-                    <h2 class="font-semibold text-lg flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-5 h-5 text-blue-600"></i>
-                        Novo Paciente
-                    </h2>
-                </div>
-
-                <div class="p-6">
-                    <form method="POST" class="space-y-4">
-                        {% csrf_token %}
-
-                        <div class="space-y-1">
-                            <label class="text-sm font-medium text-slate-700">Nome Completo *</label>
-                            <input type="text" name="nome" required
-                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-sm font-medium text-slate-700">CPF *</label>
-                                <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14"
-                                    class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-sm font-medium text-slate-700">Data Nasc. *</label>
-                                <input type="date" name="data_nascimento" required
-                                    class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                            </div>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-sm font-medium text-slate-700">Telefone *</label>
-                            <input type="text" name="telefone" required placeholder="(11) 90000-0000"
-                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-sm font-medium text-slate-700">E-mail (Opcional)</label>
-                            <input type="email" name="email"
-                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-sm font-medium text-slate-700">Endereço (Opcional)</label>
-                            <input type="text" name="endereco"
-                                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                        </div>
-
-                        <button type="submit"
-                            class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors mt-2">
-                            Salvar Paciente
-                        </button>
-                    </form>
-                </div>
+    <!-- Cards de Estatísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-slate-600 font-medium">Total de Pacientes</span>
+                <i data-lucide="users" class="w-5 h-5 text-slate-400"></i>
             </div>
+            <div class="text-3xl font-semibold text-slate-900">{{ total_pacientes }}</div>
         </div>
 
-        <!-- COLUNA 2: Tabela de Pacientes -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h2 class="font-semibold text-lg flex items-center gap-2">
-                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
-                        Pacientes Cadastrados
-                    </h2>
-                    <span class="bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded-full font-medium">{{
-                        pacientes.count }} registros</span>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-600">
-                        <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
-                            <tr>
-                                <th class="px-6 py-4 font-medium">Paciente</th>
-                                <th class="px-6 py-4 font-medium">Contato</th>
-                                <th class="px-6 py-4 font-medium">Data Cadastro</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            {% for paciente in pacientes %}
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <p class="font-medium text-slate-900">{{ paciente.nome }}</p>
-                                    <p class="text-xs text-slate-500">CPF: {{ paciente.cpf }}</p>
-                                    <p class="text-xs text-slate-500">Nasc: {{ paciente.data_nascimento|date:"d/m/Y" }}
-                                    </p>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <p>{{ paciente.telefone }}</p>
-                                    <p class="text-xs text-slate-500">{{ paciente.email|default:"Sem e-mail" }}</p>
-                                </td>
-                                <td class="px-6 py-4">
-                                    {{ paciente.criado_em|date:"d/m/Y" }}
-                                    <p class="text-xs text-slate-400">Por: {{ paciente.criado_por.nome|default:"Sistema"
-                                        }}</p>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="px-6 py-12 text-center text-slate-500">
-                                    <i data-lucide="users" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
-                                    Nenhum paciente cadastrado no sistema.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-slate-600 font-medium">Cadastros Hoje</span>
+                <i data-lucide="users" class="w-5 h-5 text-slate-400"></i>
             </div>
+            <div class="text-3xl font-semibold text-slate-900">{{ cadastros_hoje }}</div>
         </div>
 
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-slate-600 font-medium">Cadastros Este Mês</span>
+                <i data-lucide="users" class="w-5 h-5 text-slate-400"></i>
+            </div>
+            <div class="text-3xl font-semibold text-slate-900">{{ cadastros_mes }}</div>
+        </div>
+    </div>
+
+    <!-- Barra de Pesquisa -->
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm mb-6">
+        <div class="relative">
+            <i data-lucide="search"
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+            <input type="text" id="searchInput" placeholder="Buscar por nome, CPF ou e-mail..."
+                class="w-full bg-slate-50 border-none rounded-lg pl-10 pr-4 py-3 text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+        </div>
+    </div>
+
+    <!-- Tabela de Pacientes -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-semibold text-slate-900">Lista de Pacientes</h2>
+            <p class="text-slate-500 text-sm mt-1">{{ total_pacientes }} paciente(s) encontrado(s)</p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="font-semibold text-slate-900 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4">Nome</th>
+                        <th class="px-6 py-4">CPF</th>
+                        <th class="px-6 py-4">Data Nasc.</th>
+                        <th class="px-6 py-4">Telefone</th>
+                        <th class="px-6 py-4">Cadastrado em</th>
+                        <th class="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100" id="tabelaPacientes">
+                    {% for p in pacientes %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900">{{ p.nome }}</td>
+                        <td class="px-6 py-4">{{ p.cpf }}</td>
+                        <td class="px-6 py-4">{{ p.data_nascimento|date:"d/m/Y" }}</td>
+                        <td class="px-6 py-4">{{ p.telefone }}</td>
+                        <td class="px-6 py-4">{{ p.criado_em|date:"d/m/Y" }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-3">
+                                <!-- Botão de Visualizar envia os dados via JS para o Modal -->
+                                <button data-nome="{{ p.nome }}" data-cpf="{{ p.cpf }}"
+                                    data-nasc="{{ p.data_nascimento|date:'d/m/Y' }}" data-tel="{{ p.telefone }}"
+                                    data-email="{{ p.email|default:'Não informado' }}"
+                                    data-end="{{ p.endereco|default:'Não informado' }}"
+                                    data-cad="{{ p.criado_em|date:'d/m/Y' }}" onclick="abrirModalVisualizar(this)"
+                                    class="text-slate-500 hover:text-blue-600 transition-colors">
+                                    <i data-lucide="eye" class="w-5 h-5"></i>
+                                </button>
+                                <button class="text-slate-500 hover:text-blue-600 transition-colors">
+                                    <i data-lucide="edit" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500">Nenhum paciente cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL: CADASTRAR NOVO PACIENTE -->
+<div id="modalCadastro"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Cadastrar Novo Paciente</h2>
+                <p class="text-slate-500 text-sm mt-1">Preencha os dados do paciente. Campos com * são obrigatórios.</p>
+            </div>
+            <button onclick="fecharModal('modalCadastro')" class="text-slate-400 hover:text-slate-600"><i
+                    data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-slate-900">Nome Completo *</label>
+                    <input type="text" name="nome" required placeholder="Nome completo do paciente"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">CPF *</label>
+                        <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Data de Nascimento *</label>
+                        <input type="date" name="data_nascimento" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Telefone *</label>
+                        <input type="text" name="telefone" required placeholder="(00) 00000-0000"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">E-mail</label>
+                        <input type="email" name="email" placeholder="email@exemplo.com"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-slate-900">Endereço</label>
+                    <input type="text" name="endereco" placeholder="Endereço completo"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="fecharModal('modalCadastro')"
+                        class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="px-5 py-2.5 rounded-lg bg-slate-950 text-white font-medium hover:bg-slate-800 transition-colors">Cadastrar
+                        Paciente</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+
+<!-- MODAL: VISUALIZAR DADOS DO PACIENTE -->
+<div id="modalVisualizar"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div class="p-6 flex justify-between items-start">
+            <h2 class="text-xl font-semibold text-slate-900">Dados do Paciente</h2>
+            <button onclick="fecharModal('modalVisualizar')"
+                class="text-slate-400 hover:text-slate-600 border border-slate-200 rounded-md p-1"><i data-lucide="x"
+                    class="w-4 h-4"></i></button>
+        </div>
+
+        <div class="px-6 pb-6 space-y-5">
+            <div>
+                <p class="text-sm font-bold text-slate-900">Nome Completo</p>
+                <p class="text-slate-700 mt-1" id="viewNome"></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm font-bold text-slate-900">CPF</p>
+                    <p class="text-slate-700 mt-1" id="viewCpf"></p>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Data de Nascimento</p>
+                    <p class="text-slate-700 mt-1" id="viewNasc"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Telefone</p>
+                    <p class="text-slate-700 mt-1" id="viewTel"></p>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-slate-900">E-mail</p>
+                    <p class="text-slate-700 mt-1" id="viewEmail"></p>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-sm font-bold text-slate-900">Endereço</p>
+                <p class="text-slate-700 mt-1" id="viewEnd"></p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100">
+                <p class="text-sm text-slate-500" id="viewDataCad"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts Locais para os Modais e Pesquisa -->
+<script>
+    // Funções para abrir e fechar os modais
+    function abrirModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function fecharModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    // Função para preencher os dados no Modal de Visualização
+    function abrirModalVisualizar(botao) {
+        document.getElementById('viewNome').innerText = botao.dataset.nome;
+        document.getElementById('viewCpf').innerText = botao.dataset.cpf;
+        document.getElementById('viewNasc').innerText = botao.dataset.nasc;
+        document.getElementById('viewTel').innerText = botao.dataset.tel;
+        document.getElementById('viewEmail').innerText = botao.dataset.email;
+        document.getElementById('viewEnd').innerText = botao.dataset.end;
+        document.getElementById('viewDataCad').innerText = 'Cadastrado em ' + botao.dataset.cad;
+
+        abrirModal('modalVisualizar');
+    }
+
+    // Filtro simples de pesquisa na tabela (Vanilla JS)
+    document.getElementById('searchInput').addEventListener('keyup', function () {
+        let searchValue = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#tabelaPacientes tr');
+
+        rows.forEach(row => {
+            // Verifica se a linha não é a mensagem vazia
+            if (row.cells.length > 1) {
+                let textContent = row.textContent.toLowerCase();
+                row.style.display = textContent.includes(searchValue) ? '' : 'none';
+            }
+        });
+    });
+</script>
 {% endblock %}

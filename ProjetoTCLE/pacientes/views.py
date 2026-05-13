@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone # Para pegar a data de hoje
 from .models import Paciente
 
 @login_required
 def gerenciar_pacientes(request):
-    # Se o formulário foi enviado para cadastrar um paciente
+    # Lógica de Cadastro
     if request.method == 'POST':
         nome = request.POST.get('nome')
         cpf = request.POST.get('cpf')
@@ -15,7 +16,6 @@ def gerenciar_pacientes(request):
         endereco = request.POST.get('endereco')
 
         try:
-            # Salva o paciente no banco de dados
             Paciente.objects.create(
                 nome=nome,
                 cpf=cpf,
@@ -23,15 +23,27 @@ def gerenciar_pacientes(request):
                 telefone=telefone,
                 email=email,
                 endereco=endereco,
-                criado_por=request.user # Registra qual médico/admin cadastrou
+                criado_por=request.user
             )
             messages.success(request, 'Paciente cadastrado com sucesso!')
             return redirect('pacientes')
-            
         except Exception as e:
-            messages.error(request, 'Erro ao cadastrar. Verifique se este CPF já está no sistema.')
+            messages.error(request, 'Erro ao cadastrar. Verifique os dados.')
 
-    # Busca todos os pacientes ordenados pelos cadastros mais recentes
-    lista_pacientes = Paciente.objects.all().order_by('-criado_em')
+    # Buscando todos os pacientes
+    pacientes = Paciente.objects.all().order_by('-criado_em')
     
-    return render(request, 'pacientes/lista.html', {'pacientes': lista_pacientes})
+    # Calculando estatísticas para os Cards
+    hoje = timezone.now().date()
+    total_pacientes = pacientes.count()
+    cadastros_hoje = pacientes.filter(criado_em__date=hoje).count()
+    cadastros_mes = pacientes.filter(criado_em__year=hoje.year, criado_em__month=hoje.month).count()
+    
+    contexto = {
+        'pacientes': pacientes,
+        'total_pacientes': total_pacientes,
+        'cadastros_hoje': cadastros_hoje,
+        'cadastros_mes': cadastros_mes,
+    }
+    
+    return render(request, 'pacientes/lista.html', contexto)
