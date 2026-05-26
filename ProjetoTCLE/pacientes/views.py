@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.utils import timezone # Para pegar a data de hoje
+from django.utils import timezone 
 from .models import Paciente
+from weasyprint import HTML
+from django.http import HttpResponse
 
 @login_required
 def gerenciar_pacientes(request):
@@ -47,3 +49,8 @@ def gerenciar_pacientes(request):
     }
     
     return render(request, 'pacientes/lista.html', contexto)
+
+def teste_pdf(request):
+    html = HTML(string="<h1>WeasyPrint funcionando!</h1>")
+    pdf = html.write_pdf()
+    return HttpResponse(pdf, content_type="application/pdf")

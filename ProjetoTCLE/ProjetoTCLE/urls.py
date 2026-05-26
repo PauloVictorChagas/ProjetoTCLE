@@ -16,4 +16,6 @@ urlpatterns = [
     path('equipe/', views.gerenciar_equipe, name='gerenciar_equipe'),
     # Rota para tela de Cadastro de pacientes
     path('pacientes/', pacientes_views.gerenciar_pacientes, name='pacientes'),
+    #Rota de teste weasyprint
+    path('teste-pdf/', pacientes_views.teste_pdf, name='teste_pdf'),
 ]
