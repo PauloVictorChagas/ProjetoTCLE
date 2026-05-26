@@ -1,0 +1,332 @@
+{% extends 'usuarios/base.html' %}
+
+{% block conteudo %}
+<div class="p-8 max-w-7xl mx-auto">
+
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <h1 class="text-3xl font-semibold text-slate-900 mb-1">Biblioteca de Templates TCLE</h1>
+            <p class="text-slate-500 text-lg">Gerencie os templates de consentimento do sistema</p>
+        </div>
+        <button onclick="abrirModal('modalNovoTemplate')"
+            class="bg-slate-950 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Novo Template
+        </button>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div
+        class="mb-6 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="flex gap-4 mb-8">
+        <div class="relative flex-1 bg-white border border-slate-200 rounded-xl p-1.5 shadow-sm">
+            <i data-lucide="search"
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+            <input type="text" placeholder="Buscar templates..."
+                class="w-full bg-transparent border-none pl-11 pr-4 py-2 text-slate-700 focus:outline-none focus:ring-0">
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-1.5">
+            <select
+                class="bg-transparent border-none text-slate-700 py-2 px-4 focus:outline-none focus:ring-0 cursor-pointer">
+                <option>Todas as categorias</option>
+                <option>Cirúrgicos</option>
+                <option>Anestésicos</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {% for template in templates %}
+        <div
+            class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm relative flex flex-col h-full hover:shadow-md transition-shadow">
+            <span
+                class="absolute top-6 right-6 bg-slate-950 text-white text-xs px-3 py-1 rounded-full font-medium tracking-wide">
+                {% if template.ativo %}ativo{% else %}inativo{% endif %}
+            </span>
+
+            <div class="bg-blue-50 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-blue-100">
+                <i data-lucide="file-text" class="w-6 h-6 text-blue-600"></i>
+            </div>
+
+            <h3 class="text-lg font-semibold text-slate-900 leading-tight mb-1">{{ template.titulo }}</h3>
+            <p class="text-slate-500 text-sm mb-6">{{ template.get_categoria_display }}</p>
+
+            <div class="mt-auto">
+                <p class="text-sm text-slate-600 mb-3">Autopreenchimento pelo sistema:</p>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <span
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">Nome</span>
+                    <span
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">RG</span>
+                    <span
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">Médico</span>
+                    <span
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">Data</span>
+                </div>
+
+                <div class="flex gap-3 pt-4 border-t border-slate-100">
+                    <button data-titulo="{{ template.titulo }}" data-categoria="{{ template.get_categoria_display }}"
+                        data-texto="{{ template.texto_base }}" onclick="abrirModalVisualizarTemplate(this)"
+                        class="flex-1 border border-slate-200 text-slate-700 py-2 rounded-lg font-medium text-sm flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="eye" class="w-4 h-4"></i> Visualizar
+                    </button>
+
+                    <button data-id="{{ template.id }}" data-titulo="{{ template.titulo }}"
+                        data-categoria="{{ template.categoria }}" data-texto="{{ template.texto_base }}"
+                        data-ativo="{{ template.ativo|yesno:'true,false' }}" onclick="abrirModalEditarTemplate(this)"
+                        class="border border-slate-200 text-slate-700 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <p class="text-xs text-slate-400 mt-4">Atualizado em {{ template.atualizado_em|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+            <i data-lucide="library" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+            <h3 class="text-lg font-medium text-slate-900">Nenhum template cadastrado</h3>
+            <p class="text-slate-500 mt-1">Clique em "Novo Template" para começar.</p>
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+
+<div id="modalNovoTemplate"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Novo Template TCLE</h2>
+                <p class="text-slate-500 text-sm mt-1">Selecione a categoria para carregar o texto padrão.</p>
+            </div>
+            <button onclick="fecharModal('modalNovoTemplate')" class="text-slate-400 hover:text-slate-600"><i
+                    data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Título do Template *</label>
+                        <input type="text" name="titulo" required placeholder="Ex: Cirurgia Geral Padrão"
+                            class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Categoria *</label>
+                        <select name="categoria" id="selectCategoria" required onchange="carregarTextoPadrao()"
+                            class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                            <option value="">Selecione uma categoria...</option>
+                            <option value="CIRURGICO">Procedimentos Cirúrgicos</option>
+                            <option value="ANESTESICO">Procedimentos Anestésicos</option>
+                            <option value="EXAME">Exames Diagnósticos Invasivos</option>
+                            <option value="HEMOTERAPIA">Hemoterapia</option>
+                            <option value="ODONTO">Procedimentos Odontológicos</option>
+                            <option value="ALTO_RISCO">Terapias de Alto Risco</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between items-end">
+                        <label class="text-sm font-semibold text-slate-900">Corpo do Documento</label>
+                        <span class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">O sistema
+                            preencherá as variáveis automaticamente</span>
+                    </div>
+                    <textarea name="texto_base" id="textoBase" rows="15" required
+                        class="w-full bg-white border border-slate-200 rounded-lg p-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="fecharModal('modalNovoTemplate')"
+                        class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="px-5 py-2.5 rounded-lg bg-slate-950 text-white font-medium hover:bg-slate-800 transition-colors">Salvar
+                        Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div id="modalVisualizarTemplate"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900" id="viewTemplateTitulo"></h2>
+                <p class="text-slate-500 text-sm mt-1" id="viewTemplateCategoria"></p>
+            </div>
+            <button onclick="fecharModal('modalVisualizarTemplate')"
+                class="text-slate-400 hover:text-slate-600 border border-slate-200 rounded-md p-1">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+            <pre id="viewTemplateTexto"
+                class="w-full bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-700 font-sans whitespace-pre-wrap"></pre>
+        </div>
+
+        <div class="p-4 border-t border-slate-100 bg-white flex justify-end">
+            <button onclick="fecharModal('modalVisualizarTemplate')"
+                class="px-5 py-2.5 rounded-lg bg-slate-950 text-white font-medium hover:bg-slate-800 transition-colors">Fechar</button>
+        </div>
+    </div>
+</div>
+<div id="modalEditarTemplate"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Editar Template</h2>
+                <p class="text-slate-500 text-sm mt-1">Altere as informações do texto padrão.</p>
+            </div>
+            <button onclick="fecharModal('modalEditarTemplate')" class="text-slate-400 hover:text-slate-600"><i
+                    data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="template_id" id="editTemplateId">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Título do Template *</label>
+                        <input type="text" name="titulo" id="editTitulo" required
+                            class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Categoria *</label>
+                        <select name="categoria" id="editCategoria" required
+                            class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                            <option value="CIRURGICO">Procedimentos Cirúrgicos</option>
+                            <option value="ANESTESICO">Procedimentos Anestésicos</option>
+                            <option value="EXAME">Exames Diagnósticos Invasivos</option>
+                            <option value="HEMOTERAPIA">Hemoterapia</option>
+                            <option value="ODONTO">Procedimentos Odontológicos</option>
+                            <option value="ALTO_RISCO">Terapias de Alto Risco</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 py-2">
+                    <input type="checkbox" name="ativo" id="editAtivo"
+                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="editAtivo" class="text-sm font-medium text-slate-700">Template Ativo (Aparece para
+                        uso)</label>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-slate-900">Corpo do Documento</label>
+                    <textarea name="texto_base" id="editTextoBase" rows="12" required
+                        class="w-full bg-white border border-slate-200 rounded-lg p-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="fecharModal('modalEditarTemplate')"
+                        class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
+                    <button type="submit"
+                        class="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Salvar
+                        Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // Textos enviados por você, convertidos para o Autopreenchimento
+    const textosPadrao = {
+        'CIRURGICO': `Eu [PACIENTE_NOME], RG [PACIENTE_RG], declaro que fui informado(a) pelo(a) médico(a) cirurgião(ã) [MEDICO_NOME], que a intervenção cirúrgica proposta de ___________________________________ está sujeita aos seguintes riscos e intercorrências (como hemorragias, infecções, trombose, lesões de órgãos adjacentes e complicações cicatriciais): ___________________________________________________________________. 
+
+Além dos fatores acima, fui esclarecido(a) que a cirurgia tem um índice de insucesso e, como todos os procedimentos de saúde, o resultado esperado também poderá não se concretizar devido a fatores individuais, como a resposta biológica, e limitações da ciência, além de outras variações de ordem local ou sistêmica, como: ___________________________________________________________________. 
+
+Informo que discuti com o(a) cirurgião(ã) minha história de saúde geral, inclusive as doenças conhecidas por mim. Declaro, outrossim, com base no Código de Defesa do Consumidor – Lei nº 8.078 de 11/09/90, que além das possíveis intercorrências citadas acima, fui devidamente informado(a) sobre os propósitos dos procedimentos cirúrgicos e seus custos (quando aplicável). Quanto às alternativas de tratamento, fui esclarecido(a) sobre as vantagens e desvantagens de outras técnicas, tais como: ___________________________________________________________ e optei pela proposta cirúrgica descrita no Prontuário / Guia nº _________.
+
+Fui orientado(a) sobre as seguintes condições e cuidados pré e pós-operatórios necessários para pleno êxito do tratamento: ___________________________________________________________. 
+
+Portanto, aceito e autorizo a execução da cirurgia, comprometendo-me a seguir rigorosamente as orientações do(a) médico(a) cirurgião(ã), comunicando imediatamente qualquer alteração em decorrência dos procedimentos realizados e comparecer pontualmente às consultas marcadas.
+
+Tenho ciência de que a equipe cirúrgica se compromete a utilizar as técnicas e os materiais adequados à execução do tratamento e que também responde por todos os insucessos decorrentes de falha técnica na execução de seus serviços, ressalvadas as limitações inerentes à prática médica.
+
+Local: ________________________ Data: [DATA_ATUAL]
+
+________________________________________________
+PACIENTE / RESPONSÁVEL LEGAL
+
+________________________________________________
+[MEDICO_NOME]
+Profissional da Saúde`,
+
+        'ANESTESICO': `Eu [PACIENTE_NOME], RG [PACIENTE_RG], declaro que fui informado(a) pelo(a) médico(a) anestesiologista [MEDICO_NOME], que o ato anestésico proposto para viabilizar o procedimento principal está sujeito aos seguintes riscos e intercorrências (como reações alérgicas, instabilidade hemodinâmica, náuseas, cefaleia pós-raquianestesia, lesões neurológicas ou complicações respiratórias): ___________________________________________________________________.
+
+Além dos fatores acima, fui esclarecido(a) que a anestesia, como todos os procedimentos de saúde, possui riscos inerentes que podem se concretizar devido a fatores individuais, como a resposta biológica a fármacos, e limitações da ciência, além de outras variações de ordem sistêmica, como: ___________________________________________________________________.
+
+Informo que discuti com o(a) anestesiologista minha história de saúde geral, alergias prévias e o uso de medicações contínuas. Declaro, outrossim, com base no Código de Defesa do Consumidor – Lei nº 8.078 de 11/09/90, que fui devidamente informado(a) sobre os propósitos da técnica anestésica escolhida. Quanto às alternativas, fui esclarecido(a) sobre as vantagens e desvantagens de outras técnicas anestésicas aplicáveis ao meu caso, tais como: ___________________________________________________________ e optei pela proposta descrita na Ficha de Avaliação Pré-Anestésica nº _________.
+
+Fui orientado(a) sobre as condições exigidas, especialmente o tempo de JEJUM PRÉ-OPERATÓRIO e os cuidados de recuperação, essenciais para a segurança do procedimento: ___________________________________________________________.
+
+Portanto, aceito e autorizo a execução do ato anestésico, incluindo manobras de reanimação caso necessárias, comprometendo-me a seguir rigorosamente as orientações da equipe.
+
+Local: ________________________ Data: [DATA_ATUAL]
+
+________________________________________________
+PACIENTE / RESPONSÁVEL LEGAL
+
+________________________________________________
+[MEDICO_NOME]
+Profissional da Saúde`
+
+        // (Nota: No sistema real, nós adicionaremos as outras 4 categorias no mesmo padrão aqui no código JS!)
+    };
+
+    function carregarTextoPadrao() {
+        const select = document.getElementById('selectCategoria');
+        const textarea = document.getElementById('textoBase');
+        const categoria = select.value;
+
+        if (textosPadrao[categoria]) {
+            textarea.value = textosPadrao[categoria];
+        } else {
+            textarea.value = '';
+        }
+    }
+
+    function abrirModalVisualizarTemplate(botao) {
+        document.getElementById('viewTemplateTitulo').innerText = botao.dataset.titulo;
+        document.getElementById('viewTemplateCategoria').innerText = botao.dataset.categoria;
+        document.getElementById('viewTemplateTexto').innerText = botao.dataset.texto;
+
+        abrirModal('modalVisualizarTemplate');
+    }
+    function abrirModalEditarTemplate(botao) {
+        // Pega os dados escondidos no botão
+        document.getElementById('editTemplateId').value = botao.dataset.id;
+        document.getElementById('editTitulo').value = botao.dataset.titulo;
+        document.getElementById('editCategoria').value = botao.dataset.categoria;
+        document.getElementById('editTextoBase').value = botao.dataset.texto;
+
+        // Marca ou desmarca o checkbox dependendo do status atual
+        document.getElementById('editAtivo').checked = botao.dataset.ativo === 'true';
+
+        // Abre a janela
+        abrirModal('modalEditarTemplate');
+    }
+</script>
+{% endblock %}

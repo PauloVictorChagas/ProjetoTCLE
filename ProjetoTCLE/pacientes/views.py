@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone 
-from .models import Paciente
+from .models import Paciente, TemplateTCLE
 from weasyprint import HTML
 from django.http import HttpResponse
 
@@ -54,3 +54,46 @@ def teste_pdf(request):
     html = HTML(string="<h1>WeasyPrint funcionando!</h1>")
     pdf = html.write_pdf()
     return HttpResponse(pdf, content_type="application/pdf")
+
+#View para a Biblioteca de Templates do TCLE
+
+@login_required
+def biblioteca_tcle(request):
+    if request.method == 'POST':
+        # Pegamos todos os dados do formulário
+        template_id = request.POST.get('template_id') # Campo oculto que diz se é edição
+        titulo = request.POST.get('titulo')
+        categoria = request.POST.get('categoria')
+        texto_base = request.POST.get('texto_base')
+        ativo = request.POST.get('ativo') == 'on' # Se o checkbox estiver marcado, retorna True
+        
+        if template_id:
+            # MODO EDIÇÃO
+            try:
+                template = TemplateTCLE.objects.get(id=template_id)
+                template.titulo = titulo
+                template.categoria = categoria
+                template.texto_base = texto_base
+                template.ativo = ativo
+                template.save()
+                messages.success(request, 'Template atualizado com sucesso!')
+            except Exception as e:
+                messages.error(request, 'Erro ao atualizar o template.')
+        else:
+            # MODO CRIAÇÃO (Novo Template)
+            try:
+                TemplateTCLE.objects.create(
+                    titulo=titulo,
+                    categoria=categoria,
+                    texto_base=texto_base,
+                    ativo=True, # Novos sempre nascem ativos
+                    criado_por=request.user
+                )
+                messages.success(request, 'Template cadastrado com sucesso!')
+            except Exception as e:
+                messages.error(request, 'Erro ao salvar o template.')
+
+        return redirect('biblioteca')
+
+    templates = TemplateTCLE.objects.all().order_by('-atualizado_em')
+    return render(request, 'pacientes/biblioteca.html', {'templates': templates})

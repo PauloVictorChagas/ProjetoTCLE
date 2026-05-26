@@ -18,4 +18,6 @@ urlpatterns = [
     path('pacientes/', pacientes_views.gerenciar_pacientes, name='pacientes'),
     #Rota de teste weasyprint
     path('teste-pdf/', pacientes_views.teste_pdf, name='teste_pdf'),
+    #Rota para tela da Biblioteca de Templates do TCLE
+    path('biblioteca/', pacientes_views.biblioteca_tcle, name='biblioteca'),
 ]
