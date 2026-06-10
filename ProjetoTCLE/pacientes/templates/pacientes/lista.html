@@ -3,7 +3,6 @@
 {% block conteudo %}
 <div class="p-8 max-w-7xl mx-auto">
 
-    <!-- Cabeçalho -->
     <div class="flex justify-between items-start mb-8">
         <div>
             <h1 class="text-3xl font-semibold text-slate-900 mb-1">Cadastro de Pacientes</h1>
@@ -16,7 +15,6 @@
         </button>
     </div>
 
-    <!-- Alertas do Django -->
     {% if messages %}
     {% for message in messages %}
     <div
@@ -26,7 +24,6 @@
     {% endfor %}
     {% endif %}
 
-    <!-- Cards de Estatísticas -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <div class="flex justify-between items-center mb-4">
@@ -53,7 +50,6 @@
         </div>
     </div>
 
-    <!-- Barra de Pesquisa -->
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm mb-6">
         <div class="relative">
             <i data-lucide="search"
@@ -63,7 +59,6 @@
         </div>
     </div>
 
-    <!-- Tabela de Pacientes -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="p-6 border-b border-slate-100">
             <h2 class="text-lg font-semibold text-slate-900">Lista de Pacientes</h2>
@@ -85,23 +80,40 @@
                 <tbody class="divide-y divide-slate-100" id="tabelaPacientes">
                     {% for p in pacientes %}
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-slate-900">{{ p.nome }}</td>
+
+                        <td class="px-6 py-4 font-medium text-slate-900">
+                            {{ p.nome }}
+                            <span class="hidden">{{ p.email }}</span>
+                            <span class="hidden">{{ p.rg }}</span>
+                        </td>
+
                         <td class="px-6 py-4">{{ p.cpf }}</td>
                         <td class="px-6 py-4">{{ p.data_nascimento|date:"d/m/Y" }}</td>
                         <td class="px-6 py-4">{{ p.telefone }}</td>
                         <td class="px-6 py-4">{{ p.criado_em|date:"d/m/Y" }}</td>
+
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-3">
-                                <!-- Botão de Visualizar envia os dados via JS para o Modal -->
-                                <button data-nome="{{ p.nome }}" data-cpf="{{ p.cpf }}"
+                                <button data-nome="{{ p.nome }}" data-cpf="{{ p.cpf }}" data-rg="{{ p.rg }}"
                                     data-nasc="{{ p.data_nascimento|date:'d/m/Y' }}" data-tel="{{ p.telefone }}"
                                     data-email="{{ p.email|default:'Não informado' }}"
-                                    data-end="{{ p.endereco|default:'Não informado' }}"
+                                    data-endereco="{{ p.tipo_logradouro|default:'' }} {{ p.logradouro|default:'' }}, {{ p.numero|default:'S/N' }} - {{ p.complemento|default:'' }}"
+                                    data-bairro="{{ p.bairro|default:'' }}" data-cidade="{{ p.cidade|default:'' }}"
+                                    data-uf="{{ p.uf|default:'' }}" data-cep="{{ p.cep|default:'' }}"
                                     data-cad="{{ p.criado_em|date:'d/m/Y' }}" onclick="abrirModalVisualizar(this)"
                                     class="text-slate-500 hover:text-blue-600 transition-colors">
                                     <i data-lucide="eye" class="w-5 h-5"></i>
                                 </button>
-                                <button class="text-slate-500 hover:text-blue-600 transition-colors">
+
+                                <button data-id="{{ p.id }}" data-nome="{{ p.nome }}" data-cpf="{{ p.cpf }}"
+                                    data-rg="{{ p.rg }}" data-nasc="{{ p.data_nascimento|date:'Y-m-d' }}"
+                                    data-tel="{{ p.telefone }}" data-email="{{ p.email|default:'' }}"
+                                    data-cep="{{ p.cep|default:'' }}" data-tipo="{{ p.tipo_logradouro|default:'' }}"
+                                    data-logradouro="{{ p.logradouro|default:'' }}"
+                                    data-numero="{{ p.numero|default:'' }}" data-comp="{{ p.complemento|default:'' }}"
+                                    data-bairro="{{ p.bairro|default:'' }}" data-cidade="{{ p.cidade|default:'' }}"
+                                    data-uf="{{ p.uf|default:'' }}" onclick="abrirModalEditar(this)"
+                                    class="text-slate-500 hover:text-blue-600 transition-colors">
                                     <i data-lucide="edit" class="w-5 h-5"></i>
                                 </button>
                             </div>
@@ -119,73 +131,281 @@
 
 </div>
 
-<!-- MODAL: CADASTRAR NOVO PACIENTE -->
 <div id="modalCadastro"
     class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start shrink-0">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">Cadastrar Novo Paciente</h2>
                 <p class="text-slate-500 text-sm mt-1">Preencha os dados do paciente. Campos com * são obrigatórios.</p>
             </div>
-            <button onclick="fecharModal('modalCadastro')" class="text-slate-400 hover:text-slate-600"><i
-                    data-lucide="x" class="w-5 h-5"></i></button>
+            <button onclick="fecharModal('modalCadastro')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
         </div>
 
-        <div class="p-6">
+        <div class="p-6 overflow-y-auto">
             <form method="POST" class="space-y-4">
                 {% csrf_token %}
+
+                <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mt-2 mb-2">Dados Pessoais
+                </h3>
+
                 <div class="space-y-1">
-                    <label class="text-sm font-semibold text-slate-900">Nome Completo *</label>
-                    <input type="text" name="nome" required placeholder="Nome completo do paciente"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <label class="text-sm font-medium text-slate-700">Nome Completo *</label>
+                    <input type="text" name="nome" required
+                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
-                        <label class="text-sm font-semibold text-slate-900">CPF *</label>
+                        <label class="text-sm font-medium text-slate-700">CPF *</label>
                         <input type="text" name="cpf" required placeholder="000.000.000-00" maxlength="14"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-sm font-semibold text-slate-900">Data de Nascimento *</label>
-                        <input type="date" name="data_nascimento" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-500">
+                        <label class="text-sm font-medium text-slate-700">RG *</label>
+                        <input type="text" name="rg" required placeholder="00.000.000-0"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
-                        <label class="text-sm font-semibold text-slate-900">Telefone *</label>
-                        <input type="text" name="telefone" required placeholder="(00) 00000-0000"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                        <label class="text-sm font-medium text-slate-700">Data Nasc. *</label>
+                        <input type="date" name="data_nascimento" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-sm font-semibold text-slate-900">E-mail</label>
-                        <input type="email" name="email" placeholder="email@exemplo.com"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                        <label class="text-sm font-medium text-slate-700">Telefone *</label>
+                        <input type="text" name="telefone" required placeholder="(00) 00000-0000"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                     </div>
                 </div>
 
                 <div class="space-y-1">
-                    <label class="text-sm font-semibold text-slate-900">Endereço</label>
-                    <input type="text" name="endereco" placeholder="Endereço completo"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <label class="text-sm font-medium text-slate-700">E-mail (Opcional)</label>
+                    <input type="email" name="email"
+                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="fecharModal('modalCadastro')"
-                        class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
-                    <button type="submit"
-                        class="px-5 py-2.5 rounded-lg bg-slate-950 text-white font-medium hover:bg-slate-800 transition-colors">Cadastrar
-                        Paciente</button>
+                <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mt-6 mb-2">Endereço</h3>
+
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate-700">CEP *</label>
+                    <div class="relative">
+                        <input type="text" name="cep" id="cep" required placeholder="00000-000" maxlength="9"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                        <i data-lucide="loader-2" id="loadingCep"
+                            class="hidden absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-600 animate-spin"></i>
+                    </div>
                 </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1 col-span-1">
+                        <label class="text-sm font-medium text-slate-700">Tipo *</label>
+                        <select name="tipo_logradouro" id="tipo_logradouro" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-white">
+                            <option value="">Selecione</option>
+                            <option value="Rua">Rua</option>
+                            <option value="Avenida">Avenida</option>
+                            <option value="Praça">Praça</option>
+                            <option value="Travessa">Travessa</option>
+                            <option value="Rodovia">Rodovia</option>
+                            <option value="Vila">Vila</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1 col-span-2">
+                        <label class="text-sm font-medium text-slate-700">Logradouro *</label>
+                        <input type="text" name="logradouro" id="logradouro" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate-700">Número *</label>
+                        <input type="text" name="numero" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate-700">Complemento</label>
+                        <input type="text" name="complemento" placeholder="Apto, Sala, Casa 2..."
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate-700">Bairro *</label>
+                    <input type="text" name="bairro" id="bairro" required
+                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1 col-span-2">
+                        <label class="text-sm font-medium text-slate-700">Cidade *</label>
+                        <input type="text" name="cidade" id="cidade" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                    </div>
+                    <div class="space-y-1 col-span-1">
+                        <label class="text-sm font-medium text-slate-700">UF *</label>
+                        <select name="uf" id="uf" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-white">
+                            <option value="">UF</option>
+                            <option value="AC">AC</option>
+                            <option value="AL">AL</option>
+                            <option value="AP">AP</option>
+                            <option value="AM">AM</option>
+                            <option value="BA">BA</option>
+                            <option value="CE">CE</option>
+                            <option value="DF">DF</option>
+                            <option value="ES">ES</option>
+                            <option value="GO">GO</option>
+                            <option value="MA">MA</option>
+                            <option value="MT">MT</option>
+                            <option value="MS">MS</option>
+                            <option value="MG">MG</option>
+                            <option value="PA">PA</option>
+                            <option value="PB">PB</option>
+                            <option value="PR">PR</option>
+                            <option value="PE">PE</option>
+                            <option value="PI">PI</option>
+                            <option value="RJ">RJ</option>
+                            <option value="RN">RN</option>
+                            <option value="RS">RS</option>
+                            <option value="RO">RO</option>
+                            <option value="RR">RR</option>
+                            <option value="SC">SC</option>
+                            <option value="SP">SP</option>
+                            <option value="SE">SE</option>
+                            <option value="TO">TO</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors mt-6">
+                    Salvar Paciente
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<div id="modalEditar"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start shrink-0">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Editar Paciente</h2>
+                <p class="text-slate-500 text-sm mt-1">Atualize os dados cadastrais.</p>
+            </div>
+            <button onclick="fecharModal('modalEditar')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="paciente_id" id="edit_id">
+
+                <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mt-2 mb-2">Dados Pessoais
+                </h3>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate-700">Nome Completo *</label>
+                    <input type="text" name="nome" id="edit_nome" required
+                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1"><label class="text-sm font-medium text-slate-700">CPF *</label><input
+                            type="text" name="cpf" id="edit_cpf" required maxlength="14"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                    <div class="space-y-1"><label class="text-sm font-medium text-slate-700">RG *</label><input
+                            type="text" name="rg" id="edit_rg" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1"><label class="text-sm font-medium text-slate-700">Data Nasc. *</label><input
+                            type="date" name="data_nascimento" id="edit_nasc" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                    <div class="space-y-1"><label class="text-sm font-medium text-slate-700">Telefone *</label><input
+                            type="text" name="telefone" id="edit_tel" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                </div>
+                <div class="space-y-1"><label class="text-sm font-medium text-slate-700">E-mail</label><input
+                        type="email" name="email" id="edit_email"
+                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+
+                <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mt-6 mb-2">Endereço</h3>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate-700">CEP *</label>
+                    <div class="relative">
+                        <input type="text" name="cep" id="edit_cep" required maxlength="9"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none">
+                        <i data-lucide="loader-2" id="edit_loadingCep"
+                            class="hidden absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-600 animate-spin"></i>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1 col-span-1">
+                        <label class="text-sm font-medium text-slate-700">Tipo *</label>
+                        <select name="tipo_logradouro" id="edit_tipo" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none bg-white">
+                            <option value="Rua">Rua</option>
+                            <option value="Avenida">Avenida</option>
+                            <option value="Praça">Praça</option>
+                            <option value="Travessa">Travessa</option>
+                            <option value="Rodovia">Rodovia</option>
+                            <option value="Vila">Vila</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1 col-span-2"><label class="text-sm font-medium text-slate-700">Logradouro
+                            *</label><input type="text" name="logradouro" id="edit_logradouro" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1"><label class="text-sm font-medium text-slate-700">Número *</label><input
+                            type="text" name="numero" id="edit_numero" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                    <div class="space-y-1"><label class="text-sm font-medium text-slate-700">Complemento</label><input
+                            type="text" name="complemento" id="edit_comp"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                </div>
+                <div class="space-y-1"><label class="text-sm font-medium text-slate-700">Bairro *</label><input
+                        type="text" name="bairro" id="edit_bairro" required
+                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="space-y-1 col-span-2"><label class="text-sm font-medium text-slate-700">Cidade
+                            *</label><input type="text" name="cidade" id="edit_cidade" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none"></div>
+                    <div class="space-y-1 col-span-1">
+                        <label class="text-sm font-medium text-slate-700">UF *</label>
+                        <select name="uf" id="edit_uf" required
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none bg-white">
+                            <option value="BA">BA</option>
+                            <option value="SP">SP</option>
+                            <option value="RJ">RJ</option>
+                            <option value="MG">MG</option>
+                            <option value="PR">PR</option>
+                            <option value="SC">SC</option>
+                            <option value="RS">RS</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white font-medium py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors mt-6">
+                    Salvar Alterações
+                </button>
             </form>
         </div>
     </div>
 </div>
 
-<!-- MODAL: VISUALIZAR DADOS DO PACIENTE -->
 <div id="modalVisualizar"
     class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
@@ -225,8 +445,9 @@
             </div>
 
             <div>
-                <p class="text-sm font-bold text-slate-900">Endereço</p>
+                <p class="text-sm font-bold text-slate-900">Endereço Completo</p>
                 <p class="text-slate-700 mt-1" id="viewEnd"></p>
+                <p class="text-slate-700" id="viewBairroCidade"></p>
             </div>
 
             <div class="pt-4 border-t border-slate-100">
@@ -236,7 +457,6 @@
     </div>
 </div>
 
-<!-- Scripts Locais para os Modais e Pesquisa -->
 <script>
     // Funções para abrir e fechar os modais
     function abrirModal(id) {
@@ -247,17 +467,42 @@
         document.getElementById(id).classList.add('hidden');
     }
 
-    // Função para preencher os dados no Modal de Visualização
+    // Atualiza a função de visualização com o endereço formatado
     function abrirModalVisualizar(botao) {
         document.getElementById('viewNome').innerText = botao.dataset.nome;
-        document.getElementById('viewCpf').innerText = botao.dataset.cpf;
+        document.getElementById('viewCpf').innerText = botao.dataset.cpf + " | RG: " + botao.dataset.rg;
         document.getElementById('viewNasc').innerText = botao.dataset.nasc;
         document.getElementById('viewTel').innerText = botao.dataset.tel;
         document.getElementById('viewEmail').innerText = botao.dataset.email;
-        document.getElementById('viewEnd').innerText = botao.dataset.end;
-        document.getElementById('viewDataCad').innerText = 'Cadastrado em ' + botao.dataset.cad;
 
+        // Monta o endereço bonitinho
+        document.getElementById('viewEnd').innerText = botao.dataset.endereco;
+        document.getElementById('viewBairroCidade').innerText = botao.dataset.bairro + " - " + botao.dataset.cidade + "/" + botao.dataset.uf + " | CEP: " + botao.dataset.cep;
+
+        document.getElementById('viewDataCad').innerText = 'Cadastrado em ' + botao.dataset.cad;
         abrirModal('modalVisualizar');
+    }
+
+    // NOVA FUNÇÃO: Preenche os dados no Modal de Edição
+    function abrirModalEditar(botao) {
+        document.getElementById('edit_id').value = botao.dataset.id;
+        document.getElementById('edit_nome').value = botao.dataset.nome;
+        document.getElementById('edit_cpf').value = botao.dataset.cpf;
+        document.getElementById('edit_rg').value = botao.dataset.rg;
+        document.getElementById('edit_nasc').value = botao.dataset.nasc;
+        document.getElementById('edit_tel').value = botao.dataset.tel;
+        document.getElementById('edit_email').value = botao.dataset.email !== 'None' ? botao.dataset.email : '';
+
+        document.getElementById('edit_cep').value = botao.dataset.cep;
+        document.getElementById('edit_tipo').value = botao.dataset.tipo;
+        document.getElementById('edit_logradouro').value = botao.dataset.logradouro;
+        document.getElementById('edit_numero').value = botao.dataset.numero;
+        document.getElementById('edit_comp').value = botao.dataset.comp !== 'None' ? botao.dataset.comp : '';
+        document.getElementById('edit_bairro').value = botao.dataset.bairro;
+        document.getElementById('edit_cidade').value = botao.dataset.cidade;
+        document.getElementById('edit_uf').value = botao.dataset.uf;
+
+        abrirModal('modalEditar');
     }
 
     // Filtro simples de pesquisa na tabela (Vanilla JS)
@@ -272,6 +517,58 @@
                 row.style.display = textContent.includes(searchValue) ? '' : 'none';
             }
         });
+    }); // FECHAMENTO CORRETO AQUI!
+
+    // --- INTEGRAÇÃO COM API DE CEP ---
+    const cepInput = document.getElementById('cep');
+    const loadingIcon = document.getElementById('loadingCep');
+
+    cepInput.addEventListener('blur', function () {
+        // Limpa o CEP tirando traços
+        let cep = this.value.replace(/\D/g, '');
+
+        if (cep.length === 8) {
+            // Mostra o ícone girando
+            loadingIcon.classList.remove('hidden');
+
+            // Faz a requisição na API dos Correios (ViaCEP)
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(data => {
+                    loadingIcon.classList.add('hidden');
+                    if (!data.erro) {
+                        // Preenche os campos normais
+                        document.getElementById('bairro').value = data.bairro;
+                        document.getElementById('cidade').value = data.localidade;
+                        document.getElementById('uf').value = data.uf;
+
+                        // O ViaCEP devolve o "Tipo" e o "Nome" juntos 
+                        // Vamos usar o JavaScript para dividir a primeira palavra do resto!
+                        let partes = data.logradouro.split(' ');
+                        let tipoEncontrado = partes[0]; // "Avenida"
+
+                        // Tenta selecionar o Dropdown do Tipo
+                        let selectTipo = document.getElementById('tipo_logradouro');
+                        let tipoExiste = Array.from(selectTipo.options).some(opt => opt.value === tipoEncontrado);
+
+                        if (tipoExiste) {
+                            selectTipo.value = tipoEncontrado;
+                            // Preenche o resto como "Logradouro" 
+                            partes.shift();
+                            document.getElementById('logradouro').value = partes.join(' ');
+                        } else {
+                            // Se não achar o tipo na nossa lista, coloca tudo no Logradouro
+                            document.getElementById('logradouro').value = data.logradouro;
+                        }
+                    } else {
+                        alert("CEP não encontrado.");
+                    }
+                })
+                .catch(error => {
+                    loadingIcon.classList.add('hidden');
+                    console.error("Erro na consulta de CEP:", error);
+                });
+        }
     });
 </script>
 {% endblock %}

@@ -8,34 +8,68 @@ from django.http import HttpResponse
 
 @login_required
 def gerenciar_pacientes(request):
-    # Lógica de Cadastro
     if request.method == 'POST':
+        paciente_id = request.POST.get('paciente_id')
+        
+        # Coleta todos os dados do formulário
         nome = request.POST.get('nome')
         cpf = request.POST.get('cpf')
+        rg = request.POST.get('rg')
         data_nascimento = request.POST.get('data_nascimento')
         telefone = request.POST.get('telefone')
         email = request.POST.get('email')
-        endereco = request.POST.get('endereco')
+        
+        cep = request.POST.get('cep')
+        tipo_logradouro = request.POST.get('tipo_logradouro')
+        logradouro = request.POST.get('logradouro')
+        numero = request.POST.get('numero')
+        complemento = request.POST.get('complemento')
+        bairro = request.POST.get('bairro')
+        cidade = request.POST.get('cidade')
+        uf = request.POST.get('uf')
 
-        try:
-            Paciente.objects.create(
-                nome=nome,
-                cpf=cpf,
-                data_nascimento=data_nascimento,
-                telefone=telefone,
-                email=email,
-                endereco=endereco,
-                criado_por=request.user
-            )
-            messages.success(request, 'Paciente cadastrado com sucesso!')
-            return redirect('pacientes')
-        except Exception as e:
-            messages.error(request, 'Erro ao cadastrar. Verifique os dados.')
+        if paciente_id:
+            # MODO EDIÇÃO
+            try:
+                paciente = Paciente.objects.get(id=paciente_id)
+                paciente.nome = nome
+                paciente.cpf = cpf
+                paciente.rg = rg
+                paciente.data_nascimento = data_nascimento
+                paciente.telefone = telefone
+                paciente.email = email
+                paciente.cep = cep
+                paciente.tipo_logradouro = tipo_logradouro
+                paciente.logradouro = logradouro
+                paciente.numero = numero
+                paciente.complemento = complemento
+                paciente.bairro = bairro
+                paciente.cidade = cidade
+                paciente.uf = uf
+                paciente.save()
+                messages.success(request, 'Paciente atualizado com sucesso!')
+            except Exception as e:
+                messages.error(request, 'Erro ao atualizar: Verifique se o CPF/RG já existem em outro cadastro.')
+        else:
+            # MODO CRIAÇÃO (Novo Paciente)
+            try:
+                Paciente.objects.create(
+                    nome=nome, cpf=cpf, rg=rg, data_nascimento=data_nascimento,
+                    telefone=telefone, email=email, cep=cep, tipo_logradouro=tipo_logradouro,
+                    logradouro=logradouro, numero=numero, complemento=complemento,
+                    bairro=bairro, cidade=cidade, uf=uf, criado_por=request.user
+                )
+                messages.success(request, 'Paciente cadastrado com sucesso!')
+            except Exception as e:
+                messages.error(request, f'Erro ao cadastrar: {str(e)}')
 
-    # Buscando todos os pacientes
+        # Este return pertence ao IF do POST (alinhado com o 'if paciente_id:')
+        return redirect('pacientes')
+
+    # MODO LEITURA (GET) - Este bloco é ativado ao apenas abrir a página
+    # Fica alinhado com o primeiro 'if request.method'
     pacientes = Paciente.objects.all().order_by('-criado_em')
     
-    # Calculando estatísticas para os Cards
     hoje = timezone.now().date()
     total_pacientes = pacientes.count()
     cadastros_hoje = pacientes.filter(criado_em__date=hoje).count()
