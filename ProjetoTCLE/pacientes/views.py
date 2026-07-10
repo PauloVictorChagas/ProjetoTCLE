@@ -1,24 +1,30 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.utils import timezone 
-from .models import Paciente, TemplateTCLE
-from weasyprint import HTML
-from django.http import HttpResponse
+from django.utils import timezone
+from .models import Paciente, TemplateTCLE, CategoriaTemplate
 
 @login_required
 def gerenciar_pacientes(request):
+    # 1. Identifica a clínica do usuário logado
+    instituicao = request.user.instituicao
+    
+    # Trava de segurança caso um ADM sem clínica acesse a rota
+    if not instituicao:
+        messages.error(request, 'Você precisa estar vinculado a uma Unidade de Saúde para acessar pacientes.')
+        return redirect('dashboard')
+
+    # 2. Processa os formulários (Criar ou Editar)
     if request.method == 'POST':
         paciente_id = request.POST.get('paciente_id')
         
-        # Coleta todos os dados do formulário
+        # Coleta os dados do HTML
         nome = request.POST.get('nome')
         cpf = request.POST.get('cpf')
         rg = request.POST.get('rg')
         data_nascimento = request.POST.get('data_nascimento')
         telefone = request.POST.get('telefone')
         email = request.POST.get('email')
-        
         cep = request.POST.get('cep')
         tipo_logradouro = request.POST.get('tipo_logradouro')
         logradouro = request.POST.get('logradouro')
@@ -28,10 +34,10 @@ def gerenciar_pacientes(request):
         cidade = request.POST.get('cidade')
         uf = request.POST.get('uf')
 
-        if paciente_id:
-            # MODO EDIÇÃO
-            try:
-                paciente = Paciente.objects.get(id=paciente_id)
+        try:
+            if paciente_id:
+                # EDITAR PACIENTE EXISTENTE (Garantindo que é da mesma instituição)
+                paciente = get_object_or_404(Paciente, id=paciente_id, instituicao=instituicao)
                 paciente.nome = nome
                 paciente.cpf = cpf
                 paciente.rg = rg
@@ -47,87 +53,105 @@ def gerenciar_pacientes(request):
                 paciente.cidade = cidade
                 paciente.uf = uf
                 paciente.save()
-                messages.success(request, 'Paciente atualizado com sucesso!')
-            except Exception as e:
-                messages.error(request, 'Erro ao atualizar: Verifique se o CPF/RG já existem em outro cadastro.')
-        else:
-            # MODO CRIAÇÃO (Novo Paciente)
-            try:
+                messages.success(request, 'Dados do paciente atualizados com sucesso!')
+            else:
+                # CADASTRAR NOVO PACIENTE
                 Paciente.objects.create(
-                    nome=nome, cpf=cpf, rg=rg, data_nascimento=data_nascimento,
-                    telefone=telefone, email=email, cep=cep, tipo_logradouro=tipo_logradouro,
-                    logradouro=logradouro, numero=numero, complemento=complemento,
-                    bairro=bairro, cidade=cidade, uf=uf, criado_por=request.user
+                    instituicao=instituicao,
+                    nome=nome,
+                    cpf=cpf,
+                    rg=rg,
+                    data_nascimento=data_nascimento,
+                    telefone=telefone,
+                    email=email,
+                    cep=cep,
+                    tipo_logradouro=tipo_logradouro,
+                    logradouro=logradouro,
+                    numero=numero,
+                    complemento=complemento,
+                    bairro=bairro,
+                    cidade=cidade,
+                    uf=uf,
+                    criado_por=request.user
                 )
-                messages.success(request, 'Paciente cadastrado com sucesso!')
-            except Exception as e:
-                messages.error(request, f'Erro ao cadastrar: {str(e)}')
+                messages.success(request, 'Novo paciente cadastrado com sucesso!')
+        except Exception as e:
+            messages.error(request, 'Erro ao salvar. Verifique se o CPF já está cadastrado nesta unidade.')
 
-        # Este return pertence ao IF do POST (alinhado com o 'if paciente_id:')
         return redirect('pacientes')
 
-    # MODO LEITURA (GET) - Este bloco é ativado ao apenas abrir a página
-    # Fica alinhado com o primeiro 'if request.method'
-    pacientes = Paciente.objects.all().order_by('-criado_em')
+    # 3. Carrega a lista de pacientes restrita à instituição do usuário
+    pacientes = Paciente.objects.filter(instituicao=instituicao).order_by('-criado_em')
     
+    # 4. Calcula os dados dos Cards Dinâmicos
     hoje = timezone.now().date()
-    total_pacientes = pacientes.count()
-    cadastros_hoje = pacientes.filter(criado_em__date=hoje).count()
-    cadastros_mes = pacientes.filter(criado_em__year=hoje.year, criado_em__month=hoje.month).count()
+    inicio_mes = hoje.replace(day=1)
     
     contexto = {
         'pacientes': pacientes,
-        'total_pacientes': total_pacientes,
-        'cadastros_hoje': cadastros_hoje,
-        'cadastros_mes': cadastros_mes,
+        'total_pacientes': pacientes.count(),
+        'cadastros_hoje': pacientes.filter(criado_em__date=hoje).count(),
+        'cadastros_mes': pacientes.filter(criado_em__date__gte=inicio_mes).count(),
     }
-    
     return render(request, 'pacientes/lista.html', contexto)
 
-def teste_pdf(request):
-    html = HTML(string="<h1>WeasyPrint funcionando!</h1>")
-    pdf = html.write_pdf()
-    return HttpResponse(pdf, content_type="application/pdf")
-
-#View para a Biblioteca de Templates do TCLE
 
 @login_required
 def biblioteca_tcle(request):
+    instituicao = request.user.instituicao
+    
+    if not instituicao:
+        messages.error(request, 'Acesso negado. Nenhuma unidade de saúde vinculada.')
+        return redirect('dashboard')
+
     if request.method == 'POST':
-        # Pegamos todos os dados do formulário
-        template_id = request.POST.get('template_id') # Campo oculto que diz se é edição
+        template_id = request.POST.get('template_id')
         titulo = request.POST.get('titulo')
-        categoria = request.POST.get('categoria')
+        nome_categoria = request.POST.get('categoria')
         texto_base = request.POST.get('texto_base')
-        ativo = request.POST.get('ativo') == 'on' # Se o checkbox estiver marcado, retorna True
         
-        if template_id:
-            # MODO EDIÇÃO
-            try:
-                template = TemplateTCLE.objects.get(id=template_id)
+        # Como Categoria é uma Chave Estrangeira, nós pegamos do banco ou criamos uma nova na hora
+        categoria_obj, created = CategoriaTemplate.objects.get_or_create(
+            instituicao=instituicao,
+            nome=nome_categoria
+        )
+
+        try:
+            if template_id:
+                # EDITAR
+                template = get_object_or_404(TemplateTCLE, id=template_id, instituicao=instituicao)
                 template.titulo = titulo
-                template.categoria = categoria
+                template.categoria = categoria_obj
                 template.texto_base = texto_base
-                template.ativo = ativo
+                template.ativo = request.POST.get('ativo') == 'on' # Transforma o checkbox HTML em Boolean
                 template.save()
                 messages.success(request, 'Template atualizado com sucesso!')
-            except Exception as e:
-                messages.error(request, 'Erro ao atualizar o template.')
-        else:
-            # MODO CRIAÇÃO (Novo Template)
-            try:
+            else:
+                # CRIAR
                 TemplateTCLE.objects.create(
+                    instituicao=instituicao,
+                    categoria=categoria_obj,
                     titulo=titulo,
-                    categoria=categoria,
                     texto_base=texto_base,
-                    ativo=True, # Novos sempre nascem ativos
-                    criado_por=request.user
+                    criado_por=request.user,
+                    ativo=True
                 )
-                messages.success(request, 'Template cadastrado com sucesso!')
-            except Exception as e:
-                messages.error(request, 'Erro ao salvar o template.')
+                messages.success(request, 'Novo template adicionado à biblioteca!')
+        except Exception as e:
+            messages.error(request, f'Erro ao salvar template: {str(e)}')
 
         return redirect('biblioteca')
 
-    templates = TemplateTCLE.objects.all().order_by('-atualizado_em')
-    return render(request, 'pacientes/biblioteca.html', {'templates': templates})
+    # Carrega templates restritos à instituição
+    templates = TemplateTCLE.objects.filter(instituicao=instituicao).order_by('-atualizado_em')
+    
+    contexto = {
+        'templates': templates
+    }
+    return render(request, 'pacientes/biblioteca.html', contexto)
+
+
+@login_required
+def teste_pdf(request):
+    # Rota provisória para mantermos o urls.py funcionando
+    return render(request, 'pacientes/teste_pdf.html')

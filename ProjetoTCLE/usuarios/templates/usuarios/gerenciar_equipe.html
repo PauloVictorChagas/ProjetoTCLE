@@ -1,15 +1,13 @@
 {% extends 'usuarios/base.html' %}
 
-{% block conteudo %}
+{% block content %}
 <div class="p-8">
 
-    <!-- Cabeçalho -->
     <div class="mb-8">
         <h1 class="text-2xl font-semibold mb-2">Gestão de Equipe</h1>
         <p class="text-slate-600">Cadastre e gerencie os acessos ao sistema</p>
     </div>
 
-    <!-- Alertas de Sucesso ou Erro -->
     {% if messages %}
     {% for message in messages %}
     <div
@@ -21,7 +19,6 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        <!-- COLUNA DA ESQUERDA: Formulário de Cadastro -->
         <div class="lg:col-span-1">
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-100 bg-slate-50/50">
@@ -47,17 +44,15 @@
                                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
                         </div>
 
-                        <!-- Perfil: Select (Admin ou Padrão) -->
                         <div class="space-y-1">
                             <label class="text-sm font-medium text-slate-700">Perfil de Acesso *</label>
                             <select name="perfil" required
                                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
                                 <option value="PADRAO">Usuário Padrão</option>
-                                <option value="ADMIN">Administrador</option>
+                                <option value="COORDENADOR">Coordenador</option>
                             </select>
                         </div>
 
-                        <!-- Profissão: Texto Livre -->
                         <div class="space-y-1">
                             <label class="text-sm font-medium text-slate-700">Profissão/Especialidade</label>
                             <input type="text" name="profissao" placeholder="Ex: Cirurgião, Enfermeira"
@@ -79,7 +74,6 @@
             </div>
         </div>
 
-        <!-- COLUNA DA DIREITA: Lista de Equipe -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -87,8 +81,7 @@
                         <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
                         Equipe Cadastrada
                     </h2>
-                    <span class="bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded-full font-medium">
-                        usuários</span>
+                    <span class="bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded-full font-medium">usuários</span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -101,18 +94,20 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <!-- Loop do Django para listar todos os usuários -->
                             {% for membro in equipe %}
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-6 py-4">
-                                    <p class="font-medium text-slate-900">{{ membro.nome }}</p>
+                                    <p class="font-medium text-slate-900">{{ membro.first_name }}</p>
                                     <p class="text-xs text-slate-500">{{ membro.profissao|default:"Não informada" }}</p>
                                 </td>
                                 <td class="px-6 py-4">{{ membro.email }}</td>
                                 <td class="px-6 py-4">
-                                    {% if membro.perfil == 'ADMIN' %}
+                                    {% if membro.perfil == 'ADM' or membro.is_superuser %}
                                     <span
                                         class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Admin</span>
+                                    {% elif membro.perfil == 'COORDENADOR' %}
+                                    <span
+                                        class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/10">Coordenador</span>
                                     {% else %}
                                     <span
                                         class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Padrão</span>

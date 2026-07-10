@@ -57,7 +57,7 @@ ROOT_URLCONF = 'ProjetoTCLE.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,3 +124,9 @@ LOGIN_URL = 'login'
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+AUTH_USER_MODEL = 'usuarios.Usuario'
+# Habilita o login usando E-mail
+AUTHENTICATION_BACKENDS = [
+    'usuarios.backends.EmailBackend', # Nosso motor customizado (E-mail)
+    'django.contrib.auth.backends.ModelBackend', # Motor padrão (Username) fallback
+]
