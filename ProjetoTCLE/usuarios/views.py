@@ -3,9 +3,31 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
 from .models import Instituicao, Usuario
+from .utils import eh_admin_geral, get_instituicao_contexto
 
 def eh_admin(user):
-    return user.is_authenticated and (user.perfil == 'ADM' or user.is_superuser)
+    return eh_admin_geral(user)
+
+
+@login_required
+@user_passes_test(eh_admin, login_url='dashboard')
+def entrar_unidade(request, id_instituicao):
+    """
+    O Administrador Geral clica no card de uma Unidade de Saúde e passa a
+    'gerenciá-la' como se fosse o Coordenador daquela unidade.
+    """
+    instituicao = get_object_or_404(Instituicao, id=id_instituicao)
+    request.session['instituicao_ativa_id'] = instituicao.id
+    messages.success(request, f'Você está gerenciando a unidade "{instituicao.nome}".')
+    return redirect('dashboard')
+
+
+@login_required
+@user_passes_test(eh_admin, login_url='dashboard')
+def sair_unidade(request):
+    """Encerra a 'impersonação' e devolve o Administrador ao painel geral."""
+    request.session.pop('instituicao_ativa_id', None)
+    return redirect('painel_adm')
 
 @login_required
 def dashboard(request):
@@ -35,14 +57,18 @@ def trocar_senha(request):
 
 @login_required
 def gerenciar_equipe(request, id_instituicao=None):
-    # Lógica para o ADM poder entrar na equipe de uma clínica específica clicando no card
-    if request.user.perfil == 'ADM' or request.user.is_superuser:
-        if id_instituicao:
-            instituicao = get_object_or_404(Instituicao, id=id_instituicao)
-        else:
+    # Se vier um ID explícito na URL (link antigo), passamos a "entrar" nessa
+    # unidade também, para manter a sessão consistente com a sidebar.
+    if id_instituicao and eh_admin_geral(request.user):
+        request.session['instituicao_ativa_id'] = id_instituicao
+
+    instituicao = get_instituicao_contexto(request)
+
+    if not instituicao:
+        if eh_admin_geral(request.user):
             return redirect('painel_adm')
-    else:
-        instituicao = request.user.instituicao
+        messages.error(request, 'Você precisa estar vinculado a uma Unidade de Saúde.')
+        return redirect('dashboard')
 
     # Lógica de salvar um novo membro (POST)
     if request.method == 'POST':
@@ -76,6 +102,10 @@ def gerenciar_equipe(request, id_instituicao=None):
 @login_required
 @user_passes_test(eh_admin, login_url='dashboard')
 def painel_adm(request):
+    # Sempre que o ADM está na tela de "Unidades de Saúde", ele não está
+    # mais gerenciando nenhuma unidade específica.
+    request.session.pop('instituicao_ativa_id', None)
+
     if request.method == 'POST':
         nome_inst = request.POST.get('nome_inst')
         cnpj = request.POST.get('cnpj')

@@ -39,4 +39,10 @@ urlpatterns = [
     
     # Rota da Equipe para o Administrador (Leva o ID da clínica no clique do card)
     path('equipe/<int:id_instituicao>/', views.gerenciar_equipe, name='gerenciar_equipe_inst'),
+
+    # O Administrador Geral clica no card de uma unidade e passa a "ser" o Coordenador dela
+    path('unidade/<int:id_instituicao>/entrar/', views.entrar_unidade, name='entrar_unidade'),
+
+    # O Administrador Geral encerra a gestão da unidade e volta para "Unidades de Saúde"
+    path('unidade/sair/', views.sair_unidade, name='sair_unidade'),
 ]

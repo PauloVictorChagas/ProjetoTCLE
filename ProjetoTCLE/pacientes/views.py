@@ -3,14 +3,19 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from .models import Paciente, TemplateTCLE, CategoriaTemplate
+from usuarios.utils import get_instituicao_contexto, eh_admin_geral
 
 @login_required
 def gerenciar_pacientes(request):
-    # 1. Identifica a clínica do usuário logado
-    instituicao = request.user.instituicao
+    # 1. Identifica a clínica ativa (a do próprio usuário, ou a que o
+    # Administrador Geral escolheu gerenciar)
+    instituicao = get_instituicao_contexto(request)
     
-    # Trava de segurança caso um ADM sem clínica acesse a rota
+    # Trava de segurança caso ninguém tenha uma unidade ativa no momento
     if not instituicao:
+        if eh_admin_geral(request.user):
+            messages.error(request, 'Selecione uma Unidade de Saúde para gerenciar antes de acessar pacientes.')
+            return redirect('painel_adm')
         messages.error(request, 'Você precisa estar vinculado a uma Unidade de Saúde para acessar pacientes.')
         return redirect('dashboard')
 
@@ -98,9 +103,12 @@ def gerenciar_pacientes(request):
 
 @login_required
 def biblioteca_tcle(request):
-    instituicao = request.user.instituicao
+    instituicao = get_instituicao_contexto(request)
     
     if not instituicao:
+        if eh_admin_geral(request.user):
+            messages.error(request, 'Selecione uma Unidade de Saúde para gerenciar antes de acessar a biblioteca.')
+            return redirect('painel_adm')
         messages.error(request, 'Acesso negado. Nenhuma unidade de saúde vinculada.')
         return redirect('dashboard')
 

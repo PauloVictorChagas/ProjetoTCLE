@@ -39,6 +39,46 @@
         </div>
 
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            {% if eh_admin_geral and not unidade_ativa %}
+            {# ===== 1) Administrador Geral, FORA de qualquer unidade ===== #}
+            <a href="{% url 'painel_adm' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700">
+                <i data-lucide="building" class="w-4 h-4 mr-3"></i> Unidades de Saúde
+            </a>
+
+            {% elif eh_admin_geral and unidade_ativa %}
+            {# ===== 2) Administrador Geral, gerenciando uma unidade (age como Coordenador) ===== #}
+            <div class="mb-3 px-3 py-2 rounded-md bg-amber-50 border border-amber-200">
+                <p class="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Gerenciando</p>
+                <p class="text-sm font-medium text-amber-900 truncate">{{ unidade_ativa.nome }}</p>
+            </div>
+
+            <a href="{% url 'dashboard' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3"></i> Dashboard
+            </a>
+            <a href="{% url 'pacientes' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="users" class="w-4 h-4 mr-3"></i> Pacientes
+            </a>
+            <a href="{% url 'biblioteca' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="file-text" class="w-4 h-4 mr-3"></i> Biblioteca TCLE
+            </a>
+            <a href="#"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="history" class="w-4 h-4 mr-3"></i> Histórico
+            </a>
+
+            <div class="pt-4 mt-4 border-t border-slate-200">
+                <a href="{% url 'sair_unidade' %}"
+                    class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-amber-700 hover:bg-amber-50">
+                    <i data-lucide="log-out" class="w-4 h-4 mr-3"></i> Sair da Unidade
+                </a>
+            </div>
+
+            {% else %}
+            {# ===== 3) Coordenador / Usuário Padrão (comportamento original) ===== #}
             <a href="{% url 'dashboard' %}"
                 class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
                 <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3"></i> Dashboard
@@ -59,19 +99,6 @@
                 class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
                 <i data-lucide="history" class="w-4 h-4 mr-3"></i> Histórico
             </a>
-
-            {% if request.user.perfil == 'ADM' or request.user.is_superuser %}
-            <div class="pt-4 mt-4 border-t border-slate-200">
-                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Administração</p>
-                <a href="{% url 'painel_adm' %}"
-                    class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700">
-                    <i data-lucide="building" class="w-4 h-4 mr-3"></i> Unidades de Saúde
-                </a>
-                <a href="{% url 'gerenciar_equipe' %}"
-                    class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
-                    <i data-lucide="shield" class="w-4 h-4 mr-3"></i> Usuários e Equipe
-                </a>
-            </div>
             {% endif %}
         </nav>
 

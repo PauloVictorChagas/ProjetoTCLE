@@ -26,8 +26,8 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="gridCards">
         {% for inst in instituicoes %}
 
-        <div
-            class="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer relative">
+        <a href="{% url 'entrar_unidade' inst.id %}"
+            class="group block bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer relative">
 
             <div class="absolute top-6 right-6">
                 {% if inst.ativo %}
@@ -54,13 +54,12 @@
                     {{ inst.funcionarios.count }} profissional(is)
                 </div>
 
-                <a href="{% url 'gerenciar_equipe_inst' inst.id %}"
-                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <span class="text-blue-600 group-hover:text-blue-800 text-sm font-medium">
                     Gerenciar <span aria-hidden="true">&rarr;</span>
-                </a>
+                </span>
             </div>
 
-        </div>
+        </a>
         {% empty %}
         <div
             class="col-span-full py-12 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">
@@ -143,7 +142,7 @@
         let cards = document.getElementById('gridCards').children;
 
         for (let i = 0; i < cards.length; i++) {
-            if (cards[i].tagName === 'DIV' && cards[i].querySelector('h3')) {
+            if (cards[i].tagName === 'A' && cards[i].querySelector('h3')) {
                 let text = cards[i].innerText.toLowerCase();
                 cards[i].style.display = text.includes(filter) ? '' : 'none';
             }
