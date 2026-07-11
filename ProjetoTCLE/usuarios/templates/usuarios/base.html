@@ -26,6 +26,9 @@
                 {% if request.user.perfil == 'ADM' or request.user.is_superuser %}
                 <span
                     class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Administrador</span>
+                {% elif request.user.perfil == 'COORDENADOR' %}
+                <span
+                    class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/10">Coordenador</span>
                 {% else %}
                 <span
                     class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Usuário
@@ -69,6 +72,10 @@
                 class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
                 <i data-lucide="history" class="w-4 h-4 mr-3"></i> Histórico
             </a>
+            <a href="{% url 'gerenciar_equipe' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="shield" class="w-4 h-4 mr-3"></i> Usuários e Equipe
+            </a>
 
             <div class="pt-4 mt-4 border-t border-slate-200">
                 <a href="{% url 'sair_unidade' %}"
@@ -99,6 +106,12 @@
                 class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
                 <i data-lucide="history" class="w-4 h-4 mr-3"></i> Histórico
             </a>
+            {% if request.user.perfil == 'COORDENADOR' %}
+            <a href="{% url 'gerenciar_equipe' %}"
+                class="flex items-center w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-slate-50 text-slate-700">
+                <i data-lucide="shield" class="w-4 h-4 mr-3"></i> Usuários e Equipe
+            </a>
+            {% endif %}
             {% endif %}
         </nav>
 
