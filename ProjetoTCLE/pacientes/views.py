@@ -5,6 +5,11 @@ from django.utils import timezone
 from .models import Paciente, TemplateTCLE, CategoriaTemplate
 from usuarios.utils import get_instituicao_contexto, eh_admin_geral
 
+
+def pode_gerenciar_categorias(user):
+    """Administrador Geral e Coordenador podem criar/editar categorias de TCLE."""
+    return eh_admin_geral(user) or user.perfil == 'COORDENADOR'
+
 @login_required
 def gerenciar_pacientes(request):
     # 1. Identifica a clínica ativa (a do próprio usuário, ou a que o
@@ -115,14 +120,10 @@ def biblioteca_tcle(request):
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
         titulo = request.POST.get('titulo')
-        nome_categoria = request.POST.get('categoria')
+        categoria_id = request.POST.get('categoria')
         texto_base = request.POST.get('texto_base')
-        
-        # Como Categoria é uma Chave Estrangeira, nós pegamos do banco ou criamos uma nova na hora
-        categoria_obj, created = CategoriaTemplate.objects.get_or_create(
-            instituicao=instituicao,
-            nome=nome_categoria
-        )
+
+        categoria_obj = get_object_or_404(CategoriaTemplate, id=categoria_id, instituicao=instituicao)
 
         try:
             if template_id:
@@ -151,12 +152,74 @@ def biblioteca_tcle(request):
         return redirect('biblioteca')
 
     # Carrega templates restritos à instituição
-    templates = TemplateTCLE.objects.filter(instituicao=instituicao).order_by('-atualizado_em')
-    
+    templates = TemplateTCLE.objects.filter(instituicao=instituicao).select_related('categoria').order_by('-atualizado_em')
+    categorias = CategoriaTemplate.objects.filter(instituicao=instituicao).order_by('nome')
+
+    # Texto padrão de cada categoria, para o editor dinâmico do "Novo Template" (JS)
+    categorias_json = {
+        str(cat.id): {'nome': cat.nome, 'texto': cat.texto_padrao}
+        for cat in categorias
+    }
+
     contexto = {
-        'templates': templates
+        'templates': templates,
+        'categorias': categorias,
+        'categorias_dict': categorias_json,
+        'pode_gerenciar_categorias': pode_gerenciar_categorias(request.user),
     }
     return render(request, 'pacientes/biblioteca.html', contexto)
+
+
+@login_required
+def criar_categoria(request):
+    instituicao = get_instituicao_contexto(request)
+    if not instituicao:
+        return redirect('painel_adm' if eh_admin_geral(request.user) else 'dashboard')
+
+    if not pode_gerenciar_categorias(request.user):
+        messages.error(request, 'Você não tem permissão para gerenciar categorias.')
+        return redirect('biblioteca')
+
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        texto_padrao = request.POST.get('texto_padrao', '')
+
+        try:
+            CategoriaTemplate.objects.create(
+                instituicao=instituicao,
+                nome=nome,
+                texto_padrao=texto_padrao,
+                criado_por=request.user,
+            )
+            messages.success(request, 'Categoria cadastrada com sucesso!')
+        except Exception:
+            messages.error(request, 'Erro: já existe uma categoria com esse nome nesta unidade.')
+
+    return redirect('biblioteca')
+
+
+@login_required
+def editar_categoria(request, categoria_id):
+    instituicao = get_instituicao_contexto(request)
+    if not instituicao:
+        return redirect('painel_adm' if eh_admin_geral(request.user) else 'dashboard')
+
+    if not pode_gerenciar_categorias(request.user):
+        messages.error(request, 'Você não tem permissão para gerenciar categorias.')
+        return redirect('biblioteca')
+
+    categoria = get_object_or_404(CategoriaTemplate, id=categoria_id, instituicao=instituicao)
+
+    if request.method == 'POST':
+        categoria.nome = request.POST.get('nome')
+        categoria.texto_padrao = request.POST.get('texto_padrao', '')
+        try:
+            categoria.save()
+            messages.success(request, 'Categoria atualizada com sucesso!')
+        except Exception:
+            messages.error(request, 'Erro: já existe uma categoria com esse nome nesta unidade.')
+
+    return redirect('biblioteca')
 
 
 @login_required

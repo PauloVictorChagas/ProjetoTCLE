@@ -8,11 +8,20 @@
             <h1 class="text-3xl font-semibold text-slate-900 mb-1">Biblioteca de Templates TCLE</h1>
             <p class="text-slate-500 text-lg">Gerencie os templates de consentimento do sistema</p>
         </div>
-        <button onclick="abrirModal('modalNovoTemplate')"
-            class="bg-slate-950 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            Novo Template
-        </button>
+        <div class="flex gap-3">
+            {% if pode_gerenciar_categorias %}
+            <button onclick="abrirModalCategorias()"
+                class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
+                <i data-lucide="tag" class="w-4 h-4"></i>
+                Nova Categoria
+            </button>
+            {% endif %}
+            <button onclick="abrirModalNovoTemplate()"
+                class="bg-slate-950 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Novo Template
+            </button>
+        </div>
     </div>
 
     {% if messages %}
@@ -28,23 +37,24 @@
         <div class="relative flex-1 bg-white border border-slate-200 rounded-xl p-1.5 shadow-sm">
             <i data-lucide="search"
                 class="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5"></i>
-            <input type="text" placeholder="Buscar templates..."
+            <input type="text" id="buscaTemplate" onkeyup="filtrarTemplates()" placeholder="Buscar templates..."
                 class="w-full bg-transparent border-none pl-11 pr-4 py-2 text-slate-700 focus:outline-none focus:ring-0">
         </div>
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-1.5">
-            <select
+            <select id="filtroCategoria" onchange="filtrarTemplates()"
                 class="bg-transparent border-none text-slate-700 py-2 px-4 focus:outline-none focus:ring-0 cursor-pointer">
-                <option>Todas as categorias</option>
-                <option>Cirúrgicos</option>
-                <option>Anestésicos</option>
+                <option value="">Todas as categorias</option>
+                {% for cat in categorias %}
+                <option value="{{ cat.nome }}">{{ cat.nome }}</option>
+                {% endfor %}
             </select>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="gridTemplates">
 
         {% for template in templates %}
-        <div
+        <div data-nome="{{ template.titulo|lower }}" data-categoria="{{ template.categoria.nome }}"
             class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm relative flex flex-col h-full hover:shadow-md transition-shadow">
             <span
                 class="absolute top-6 right-6 bg-slate-950 text-white text-xs px-3 py-1 rounded-full font-medium tracking-wide">
@@ -56,30 +66,30 @@
             </div>
 
             <h3 class="text-lg font-semibold text-slate-900 leading-tight mb-1">{{ template.titulo }}</h3>
-            <p class="text-slate-500 text-sm mb-6">{{ template.get_categoria_display }}</p>
+            <p class="text-slate-500 text-sm mb-6">{{ template.categoria.nome }}</p>
 
             <div class="mt-auto">
-                <p class="text-sm text-slate-600 mb-3">Autopreenchimento pelo sistema:</p>
+                <p class="text-sm text-slate-600 mb-3">Variáveis substituídas na geração:</p>
                 <div class="flex flex-wrap gap-2 mb-6">
                     <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">Nome</span>
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@paciente</span>
                     <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">RG</span>
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@responsavel</span>
                     <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">Médico</span>
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@profissional</span>
                     <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">Data</span>
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@data</span>
                 </div>
 
                 <div class="flex gap-3 pt-4 border-t border-slate-100">
-                    <button data-titulo="{{ template.titulo }}" data-categoria="{{ template.get_categoria_display }}"
+                    <button data-titulo="{{ template.titulo }}" data-categoria="{{ template.categoria.nome }}"
                         data-texto="{{ template.texto_base }}" onclick="abrirModalVisualizarTemplate(this)"
                         class="flex-1 border border-slate-200 text-slate-700 py-2 rounded-lg font-medium text-sm flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors">
                         <i data-lucide="eye" class="w-4 h-4"></i> Visualizar
                     </button>
 
                     <button data-id="{{ template.id }}" data-titulo="{{ template.titulo }}"
-                        data-categoria="{{ template.categoria }}" data-texto="{{ template.texto_base }}"
+                        data-categoria-id="{{ template.categoria.id }}" data-texto="{{ template.texto_base }}"
                         data-ativo="{{ template.ativo|yesno:'true,false' }}" onclick="abrirModalEditarTemplate(this)"
                         class="border border-slate-200 text-slate-700 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                         <i data-lucide="edit" class="w-4 h-4"></i>
@@ -100,6 +110,7 @@
     </div>
 </div>
 
+<!-- ======================= MODAL: NOVO TEMPLATE ======================= -->
 <div id="modalNovoTemplate"
     class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -113,7 +124,20 @@
         </div>
 
         <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
-            <form method="POST" class="space-y-4">
+            {% if not categorias %}
+            <div class="text-center py-10 bg-white border border-dashed border-slate-300 rounded-lg">
+                <i data-lucide="tag" class="w-10 h-10 mx-auto text-slate-300 mb-3"></i>
+                <p class="text-slate-600 font-medium">Nenhuma categoria cadastrada</p>
+                <p class="text-slate-500 text-sm mt-1">
+                    {% if pode_gerenciar_categorias %}
+                    Cadastre uma categoria primeiro para poder criar templates.
+                    {% else %}
+                    Peça a um Administrador ou Coordenador para cadastrar uma categoria.
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <form method="POST" id="formNovoTemplate" class="space-y-4" onsubmit="return prepararEnvioNovoTemplate()">
                 {% csrf_token %}
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -128,12 +152,9 @@
                         <select name="categoria" id="selectCategoria" required onchange="carregarTextoPadrao()"
                             class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
                             <option value="">Selecione uma categoria...</option>
-                            <option value="CIRURGICO">Procedimentos Cirúrgicos</option>
-                            <option value="ANESTESICO">Procedimentos Anestésicos</option>
-                            <option value="EXAME">Exames Diagnósticos Invasivos</option>
-                            <option value="HEMOTERAPIA">Hemoterapia</option>
-                            <option value="ODONTO">Procedimentos Odontológicos</option>
-                            <option value="ALTO_RISCO">Terapias de Alto Risco</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -141,11 +162,16 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-end">
                         <label class="text-sm font-semibold text-slate-900">Corpo do Documento</label>
-                        <span class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">O sistema
-                            preencherá as variáveis automaticamente</span>
+                        <span class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">
+                            Preencha apenas os campos destacados. O restante do texto é fixo da categoria.
+                        </span>
                     </div>
-                    <textarea name="texto_base" id="textoBase" rows="15" required
-                        class="w-full bg-white border border-slate-200 rounded-lg p-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                    <div id="editorNovoTemplate"
+                        class="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-4 text-sm leading-relaxed focus:ring-2 focus:ring-blue-100 outline-none transition-all whitespace-pre-wrap">
+                        <span class="text-slate-400">Selecione uma categoria acima para carregar o texto padrão…</span>
+                    </div>
+                    <!-- Campo oculto que recebe o texto final montado (fixo + campos preenchidos) -->
+                    <textarea name="texto_base" id="textoBaseFinal" class="hidden"></textarea>
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4">
@@ -156,9 +182,12 @@
                         Template</button>
                 </div>
             </form>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<!-- ======================= MODAL: VISUALIZAR TEMPLATE ======================= -->
 <div id="modalVisualizarTemplate"
     class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -184,6 +213,8 @@
         </div>
     </div>
 </div>
+
+<!-- ======================= MODAL: EDITAR TEMPLATE ======================= -->
 <div id="modalEditarTemplate"
     class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -212,12 +243,9 @@
                         <label class="text-sm font-semibold text-slate-900">Categoria *</label>
                         <select name="categoria" id="editCategoria" required
                             class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
-                            <option value="CIRURGICO">Procedimentos Cirúrgicos</option>
-                            <option value="ANESTESICO">Procedimentos Anestésicos</option>
-                            <option value="EXAME">Exames Diagnósticos Invasivos</option>
-                            <option value="HEMOTERAPIA">Hemoterapia</option>
-                            <option value="ODONTO">Procedimentos Odontológicos</option>
-                            <option value="ALTO_RISCO">Terapias de Alto Risco</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -247,86 +275,320 @@
     </div>
 </div>
 
+{% if pode_gerenciar_categorias %}
+<!-- ======================= MODAL: CATEGORIAS (lista + criar/editar) ======================= -->
+<div id="modalCategorias"
+    class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900" id="tituloModalCategoria">Nova Categoria</h2>
+                <p class="text-slate-500 text-sm mt-1">O texto padrão é obrigatório e não poderá ser alterado na
+                    criação de templates.</p>
+            </div>
+            <button onclick="fecharModal('modalCategorias')" class="text-slate-400 hover:text-slate-600"><i
+                    data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50 space-y-6">
+
+            <!-- Lista de categorias já cadastradas -->
+            {% if categorias %}
+            <div>
+                <p class="text-sm font-semibold text-slate-900 mb-2">Categorias cadastradas</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for cat in categorias %}
+                    <button type="button" onclick="editarCategoriaExistente('{{ cat.id }}')"
+                        class="flex items-center gap-2 border border-slate-200 bg-white rounded-full pl-3 pr-2 py-1 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        {{ cat.nome }}
+                        <i data-lucide="pencil" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="border-t border-slate-200"></div>
+            {% endif %}
+
+            <!-- Formulário de criação/edição -->
+            <form method="POST" id="formCategoria" action="{% url 'criar_categoria' %}" class="space-y-4"
+                onsubmit="return prepararEnvioCategoria()">
+                {% csrf_token %}
+
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-slate-900">Nome da Categoria *</label>
+                    <input type="text" name="nome" id="categoriaNome" required
+                        placeholder="Ex: Procedimentos Cirúrgicos"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-4">
+                    <!-- Editor de texto (textarea simples, com inserção no cursor) -->
+                    <div class="space-y-1">
+                        <label class="text-sm font-semibold text-slate-900">Texto Padrão da Categoria *</label>
+                        <textarea name="texto_padrao" id="categoriaTexto" rows="14" required
+                            placeholder="Digite aqui o texto fixo da categoria. Use os botões ao lado para inserir variáveis, campos e assinaturas."
+                            class="w-full bg-white border border-slate-200 rounded-lg p-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                    </div>
+
+                    <!-- Barra de ferramentas -->
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Variáveis</p>
+                            <div class="flex flex-col gap-1.5">
+                                <button type="button" onclick="inserirNoCursor('@profissional')"
+                                    class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@profissional</button>
+                                <button type="button" onclick="inserirNoCursor('@paciente')"
+                                    class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@paciente</button>
+                                <button type="button" onclick="inserirNoCursor('@responsavel')"
+                                    class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@responsavel</button>
+                                <button type="button" onclick="inserirNoCursor('@data')"
+                                    class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@data</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ferramentas</p>
+                            <div class="flex flex-col gap-1.5">
+                                <button type="button" onclick="adicionarCampoPersonalizado()"
+                                    class="flex items-center gap-1.5 text-left text-xs px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium">
+                                    <i data-lucide="type" class="w-3.5 h-3.5"></i> Adicionar Campo
+                                </button>
+                                <button type="button" onclick="adicionarAssinatura()"
+                                    class="flex items-center gap-1.5 text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium">
+                                    <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Adicionar Assinatura
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center gap-3 pt-4">
+                    <button type="button" id="btnNovaCategoriaLimpar" onclick="resetarFormCategoria()"
+                        class="hidden text-sm text-slate-500 hover:text-slate-700 underline">
+                        Cancelar edição e cadastrar uma nova categoria
+                    </button>
+                    <div class="flex gap-3 ml-auto">
+                        <button type="button" onclick="fecharModal('modalCategorias')"
+                            class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
+                        <button type="submit" id="btnSalvarCategoria"
+                            class="px-5 py-2.5 rounded-lg bg-slate-950 text-white font-medium hover:bg-slate-800 transition-colors">Salvar
+                            Categoria</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{{ categorias_dict|json_script:"categorias-data" }}
+
 <script>
     function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
     function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    // Textos enviados por você, convertidos para o Autopreenchimento
-    const textosPadrao = {
-        'CIRURGICO': `Eu [PACIENTE_NOME], RG [PACIENTE_RG], declaro que fui informado(a) pelo(a) médico(a) cirurgião(ã) [MEDICO_NOME], que a intervenção cirúrgica proposta de ___________________________________ está sujeita aos seguintes riscos e intercorrências (como hemorragias, infecções, trombose, lesões de órgãos adjacentes e complicações cicatriciais): ___________________________________________________________________. 
+    // ---------------------------------------------------------------
+    // Filtro de busca + categoria na grade de templates
+    // ---------------------------------------------------------------
+    function filtrarTemplates() {
+        const busca = document.getElementById('buscaTemplate').value.toLowerCase();
+        const categoria = document.getElementById('filtroCategoria').value;
+        const cards = document.querySelectorAll('#gridTemplates > div[data-nome]');
 
-Além dos fatores acima, fui esclarecido(a) que a cirurgia tem um índice de insucesso e, como todos os procedimentos de saúde, o resultado esperado também poderá não se concretizar devido a fatores individuais, como a resposta biológica, e limitações da ciência, além de outras variações de ordem local ou sistêmica, como: ___________________________________________________________________. 
-
-Informo que discuti com o(a) cirurgião(ã) minha história de saúde geral, inclusive as doenças conhecidas por mim. Declaro, outrossim, com base no Código de Defesa do Consumidor – Lei nº 8.078 de 11/09/90, que além das possíveis intercorrências citadas acima, fui devidamente informado(a) sobre os propósitos dos procedimentos cirúrgicos e seus custos (quando aplicável). Quanto às alternativas de tratamento, fui esclarecido(a) sobre as vantagens e desvantagens de outras técnicas, tais como: ___________________________________________________________ e optei pela proposta cirúrgica descrita no Prontuário / Guia nº _________.
-
-Fui orientado(a) sobre as seguintes condições e cuidados pré e pós-operatórios necessários para pleno êxito do tratamento: ___________________________________________________________. 
-
-Portanto, aceito e autorizo a execução da cirurgia, comprometendo-me a seguir rigorosamente as orientações do(a) médico(a) cirurgião(ã), comunicando imediatamente qualquer alteração em decorrência dos procedimentos realizados e comparecer pontualmente às consultas marcadas.
-
-Tenho ciência de que a equipe cirúrgica se compromete a utilizar as técnicas e os materiais adequados à execução do tratamento e que também responde por todos os insucessos decorrentes de falha técnica na execução de seus serviços, ressalvadas as limitações inerentes à prática médica.
-
-Local: ________________________ Data: [DATA_ATUAL]
-
-________________________________________________
-PACIENTE / RESPONSÁVEL LEGAL
-
-________________________________________________
-[MEDICO_NOME]
-Profissional da Saúde`,
-
-        'ANESTESICO': `Eu [PACIENTE_NOME], RG [PACIENTE_RG], declaro que fui informado(a) pelo(a) médico(a) anestesiologista [MEDICO_NOME], que o ato anestésico proposto para viabilizar o procedimento principal está sujeito aos seguintes riscos e intercorrências (como reações alérgicas, instabilidade hemodinâmica, náuseas, cefaleia pós-raquianestesia, lesões neurológicas ou complicações respiratórias): ___________________________________________________________________.
-
-Além dos fatores acima, fui esclarecido(a) que a anestesia, como todos os procedimentos de saúde, possui riscos inerentes que podem se concretizar devido a fatores individuais, como a resposta biológica a fármacos, e limitações da ciência, além de outras variações de ordem sistêmica, como: ___________________________________________________________________.
-
-Informo que discuti com o(a) anestesiologista minha história de saúde geral, alergias prévias e o uso de medicações contínuas. Declaro, outrossim, com base no Código de Defesa do Consumidor – Lei nº 8.078 de 11/09/90, que fui devidamente informado(a) sobre os propósitos da técnica anestésica escolhida. Quanto às alternativas, fui esclarecido(a) sobre as vantagens e desvantagens de outras técnicas anestésicas aplicáveis ao meu caso, tais como: ___________________________________________________________ e optei pela proposta descrita na Ficha de Avaliação Pré-Anestésica nº _________.
-
-Fui orientado(a) sobre as condições exigidas, especialmente o tempo de JEJUM PRÉ-OPERATÓRIO e os cuidados de recuperação, essenciais para a segurança do procedimento: ___________________________________________________________.
-
-Portanto, aceito e autorizo a execução do ato anestésico, incluindo manobras de reanimação caso necessárias, comprometendo-me a seguir rigorosamente as orientações da equipe.
-
-Local: ________________________ Data: [DATA_ATUAL]
-
-________________________________________________
-PACIENTE / RESPONSÁVEL LEGAL
-
-________________________________________________
-[MEDICO_NOME]
-Profissional da Saúde`
-
-        // (Nota: No sistema real, nós adicionaremos as outras 4 categorias no mesmo padrão aqui no código JS!)
-    };
-
-    function carregarTextoPadrao() {
-        const select = document.getElementById('selectCategoria');
-        const textarea = document.getElementById('textoBase');
-        const categoria = select.value;
-
-        if (textosPadrao[categoria]) {
-            textarea.value = textosPadrao[categoria];
-        } else {
-            textarea.value = '';
-        }
+        cards.forEach(card => {
+            const nomeOk = card.dataset.nome.includes(busca);
+            const categoriaOk = !categoria || card.dataset.categoria === categoria;
+            card.style.display = (nomeOk && categoriaOk) ? '' : 'none';
+        });
     }
 
+    // ---------------------------------------------------------------
+    // Visualizar / Editar Template
+    // ---------------------------------------------------------------
     function abrirModalVisualizarTemplate(botao) {
         document.getElementById('viewTemplateTitulo').innerText = botao.dataset.titulo;
         document.getElementById('viewTemplateCategoria').innerText = botao.dataset.categoria;
         document.getElementById('viewTemplateTexto').innerText = botao.dataset.texto;
-
         abrirModal('modalVisualizarTemplate');
     }
+
     function abrirModalEditarTemplate(botao) {
-        // Pega os dados escondidos no botão
         document.getElementById('editTemplateId').value = botao.dataset.id;
         document.getElementById('editTitulo').value = botao.dataset.titulo;
-        document.getElementById('editCategoria').value = botao.dataset.categoria;
+        document.getElementById('editCategoria').value = botao.dataset.categoriaId;
         document.getElementById('editTextoBase').value = botao.dataset.texto;
-
-        // Marca ou desmarca o checkbox dependendo do status atual
         document.getElementById('editAtivo').checked = botao.dataset.ativo === 'true';
-
-        // Abre a janela
         abrirModal('modalEditarTemplate');
+    }
+
+    // ---------------------------------------------------------------
+    // Novo Template: editor dinâmico (texto fixo travado + campos preenchíveis)
+    // ---------------------------------------------------------------
+    const CATEGORIAS = JSON.parse(document.getElementById('categorias-data').textContent);
+
+    function abrirModalNovoTemplate() {
+        abrirModal('modalNovoTemplate');
+    }
+
+    function segmentarTexto(texto) {
+        // Divide o texto em pedaços: fixo, ou {Campo Personalizado}
+        const partes = [];
+        const regex = /\{([^}]+)\}/g;
+        let ultimoIndex = 0;
+        let match;
+        while ((match = regex.exec(texto)) !== null) {
+            if (match.index > ultimoIndex) {
+                partes.push({ tipo: 'fixo', valor: texto.slice(ultimoIndex, match.index) });
+            }
+            partes.push({ tipo: 'campo', valor: match[1] });
+            ultimoIndex = regex.lastIndex;
+        }
+        if (ultimoIndex < texto.length) {
+            partes.push({ tipo: 'fixo', valor: texto.slice(ultimoIndex) });
+        }
+        return partes;
+    }
+
+    function carregarTextoPadrao() {
+        const categoriaId = document.getElementById('selectCategoria').value;
+        const editor = document.getElementById('editorNovoTemplate');
+        editor.innerHTML = '';
+
+        if (!categoriaId || !CATEGORIAS[categoriaId]) {
+            editor.innerHTML = '<span class="text-slate-400">Selecione uma categoria acima para carregar o texto padrão…</span>';
+            return;
+        }
+
+        const partes = segmentarTexto(CATEGORIAS[categoriaId].texto);
+
+        partes.forEach(parte => {
+            if (parte.tipo === 'fixo') {
+                const span = document.createElement('span');
+                span.contentEditable = 'false';
+                span.className = 'texto-fixo-categoria';
+                span.style.color = '#334155';
+                span.textContent = parte.valor;
+                editor.appendChild(span);
+            } else {
+                const span = document.createElement('span');
+                span.contentEditable = 'true';
+                span.className = 'campo-editavel-template';
+                span.dataset.campo = parte.valor;
+                span.setAttribute('data-placeholder', parte.valor);
+                span.style.display = 'inline-block';
+                span.style.minWidth = '90px';
+                span.style.padding = '0 6px';
+                span.style.margin = '0 2px';
+                span.style.borderBottom = '2px dashed #93c5fd';
+                span.style.color = '#1d4ed8';
+                span.style.outline = 'none';
+                editor.appendChild(span);
+            }
+        });
+
+        editor.contentEditable = 'true';
+    }
+
+    function prepararEnvioNovoTemplate() {
+        const editor = document.getElementById('editorNovoTemplate');
+        const categoriaId = document.getElementById('selectCategoria').value;
+
+        if (!categoriaId) {
+            alert('Selecione uma categoria.');
+            return false;
+        }
+
+        // Garante que todos os campos personalizados foram preenchidos
+        const camposVazios = editor.querySelectorAll('.campo-editavel-template');
+        for (const campo of camposVazios) {
+            if (!campo.textContent.trim()) {
+                alert('Preencha o campo "' + campo.dataset.campo + '" antes de salvar.');
+                campo.focus();
+                return false;
+            }
+        }
+
+        // Reconstrói o texto final: texto fixo + valor digitado nos campos
+        let textoFinal = '';
+        editor.childNodes.forEach(node => {
+            textoFinal += node.textContent;
+        });
+
+        document.getElementById('textoBaseFinal').value = textoFinal;
+        return true;
+    }
+
+    // ---------------------------------------------------------------
+    // Estilo do placeholder dos campos personalizados (fica visível até digitar)
+    // ---------------------------------------------------------------
+    const estiloPlaceholder = document.createElement('style');
+    estiloPlaceholder.textContent = `
+        .campo-editavel-template:empty:before {
+            content: attr(data-placeholder);
+            color: #93c5fd;
+        }
+    `;
+    document.head.appendChild(estiloPlaceholder);
+
+    // ---------------------------------------------------------------
+    // Categorias: abrir modal, inserir no cursor, criar campo/assinatura, editar existente
+    // ---------------------------------------------------------------
+    function abrirModalCategorias() {
+        resetarFormCategoria();
+        abrirModal('modalCategorias');
+    }
+
+    function inserirNoCursor(texto) {
+        const textarea = document.getElementById('categoriaTexto');
+        const inicio = textarea.selectionStart;
+        const fim = textarea.selectionEnd;
+        textarea.setRangeText(texto, inicio, fim, 'end');
+        textarea.focus();
+    }
+
+    function adicionarCampoPersonalizado() {
+        const nomeCampo = prompt('Nome do campo personalizado (ex: Reações que poderá ter):');
+        if (nomeCampo && nomeCampo.trim()) {
+            inserirNoCursor('{' + nomeCampo.trim() + '}');
+        }
+    }
+
+    function adicionarAssinatura() {
+        const rotulo = prompt('Texto abaixo da linha de assinatura:', 'Assinatura do Paciente');
+        if (rotulo !== null) {
+            const bloco = '\n_____________________________________\n' + rotulo.trim() + '\n\n';
+            inserirNoCursor(bloco);
+        }
+    }
+
+    function resetarFormCategoria() {
+        document.getElementById('formCategoria').action = "{% url 'criar_categoria' %}";
+        document.getElementById('tituloModalCategoria').innerText = 'Nova Categoria';
+        document.getElementById('categoriaNome').value = '';
+        document.getElementById('categoriaTexto').value = '';
+        document.getElementById('btnSalvarCategoria').innerText = 'Salvar Categoria';
+        document.getElementById('btnNovaCategoriaLimpar').classList.add('hidden');
+    }
+
+    function editarCategoriaExistente(categoriaId) {
+        const dados = CATEGORIAS[categoriaId];
+        if (!dados) return;
+
+        document.getElementById('formCategoria').action = '/categorias/' + categoriaId + '/editar/';
+        document.getElementById('tituloModalCategoria').innerText = 'Editar Categoria';
+        document.getElementById('categoriaNome').value = dados.nome;
+        document.getElementById('categoriaTexto').value = dados.texto;
+        document.getElementById('btnSalvarCategoria').innerText = 'Salvar Alterações';
+        document.getElementById('btnNovaCategoriaLimpar').classList.remove('hidden');
+    }
+
+    function prepararEnvioCategoria() {
+        const texto = document.getElementById('categoriaTexto').value.trim();
+        if (!texto) {
+            alert('O Texto Padrão da Categoria é obrigatório.');
+            return false;
+        }
+        return true;
     }
 </script>
 {% endblock %}

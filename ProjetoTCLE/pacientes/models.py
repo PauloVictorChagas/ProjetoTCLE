@@ -33,6 +33,16 @@ class CategoriaTemplate(models.Model):
     instituicao = models.ForeignKey(Instituicao, on_delete=models.CASCADE, related_name='categorias')
     nome = models.CharField('Nome da Categoria', max_length=100)
     descricao = models.TextField('Descrição / Notas de Orientação', blank=True, null=True)
+    texto_padrao = models.TextField(
+        'Texto Padrão da Categoria',
+        blank=True,
+        default='',
+        help_text=(
+            'Texto fixo obrigatório da categoria. Pode conter variáveis (@profissional, '
+            '@paciente, @responsavel, @data) e campos personalizados no formato {Nome do Campo}.'
+        ),
+    )
+    criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"{self.nome} - {self.instituicao.nome}"

@@ -31,6 +31,10 @@ urlpatterns = [
     # Rota para tela da Biblioteca de Templates do TCLE
     path('biblioteca/', pacientes_views.biblioteca_tcle, name='biblioteca'),
 
+    # Rotas de Categorias de TCLE (Administrador e Coordenador)
+    path('categorias/nova/', pacientes_views.criar_categoria, name='criar_categoria'),
+    path('categorias/<int:categoria_id>/editar/', pacientes_views.editar_categoria, name='editar_categoria'),
+
     # Nova rota para a Troca de Senha
     path('trocar-senha/', views.trocar_senha, name='trocar_senha'),
     
