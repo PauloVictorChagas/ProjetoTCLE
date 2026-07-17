@@ -74,7 +74,11 @@
                     <span
                         class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@paciente</span>
                     <span
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@rgpaciente</span>
+                    <span
                         class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@responsavel</span>
+                    <span
+                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@rgresponsavel</span>
                     <span
                         class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@profissional</span>
                     <span
@@ -326,7 +330,7 @@
                     <div class="space-y-1">
                         <label class="text-sm font-semibold text-slate-900">Texto Padrão da Categoria *</label>
                         <textarea name="texto_padrao" id="categoriaTexto" rows="14" required
-                            placeholder="Digite aqui o texto fixo da categoria. Use os botões ao lado para inserir variáveis, campos e assinaturas."
+                            placeholder="Digite aqui o texto fixo da categoria. Use os botões ao lado para inserir variáveis, campos ([Nome do Campo]) e assinaturas."
                             class="w-full bg-white border border-slate-200 rounded-lg p-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
                     </div>
 
@@ -339,8 +343,12 @@
                                     class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@profissional</button>
                                 <button type="button" onclick="inserirNoCursor('@paciente')"
                                     class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@paciente</button>
+                                <button type="button" onclick="inserirNoCursor('@rgpaciente')"
+                                    class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@rgpaciente</button>
                                 <button type="button" onclick="inserirNoCursor('@responsavel')"
                                     class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@responsavel</button>
+                                <button type="button" onclick="inserirNoCursor('@rgresponsavel')"
+                                    class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@rgresponsavel</button>
                                 <button type="button" onclick="inserirNoCursor('@data')"
                                     class="text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700">@data</button>
                             </div>
@@ -431,16 +439,17 @@
     }
 
     function segmentarTexto(texto) {
-        // Divide o texto em pedaços: fixo, ou {Campo Personalizado}
+        // Divide o texto em pedaços: fixo, ou [Campo Personalizado]
+        // (o formato {Campo} antigo também é reconhecido, para não quebrar categorias já cadastradas)
         const partes = [];
-        const regex = /\{([^}]+)\}/g;
+        const regex = /\[([^\]]+)\]|\{([^}]+)\}/g;
         let ultimoIndex = 0;
         let match;
         while ((match = regex.exec(texto)) !== null) {
             if (match.index > ultimoIndex) {
                 partes.push({ tipo: 'fixo', valor: texto.slice(ultimoIndex, match.index) });
             }
-            partes.push({ tipo: 'campo', valor: match[1] });
+            partes.push({ tipo: 'campo', valor: match[1] || match[2] });
             ultimoIndex = regex.lastIndex;
         }
         if (ultimoIndex < texto.length) {
@@ -538,27 +547,34 @@
         abrirModal('modalCategorias');
     }
 
-    function inserirNoCursor(texto) {
+    function inserirNoCursor(texto, inicio, fim) {
         const textarea = document.getElementById('categoriaTexto');
-        const inicio = textarea.selectionStart;
-        const fim = textarea.selectionEnd;
-        textarea.setRangeText(texto, inicio, fim, 'end');
+        // Se a posição não foi passada explicitamente, usa a seleção atual
+        if (typeof inicio !== 'number') inicio = textarea.selectionStart;
+        if (typeof fim !== 'number') fim = textarea.selectionEnd;
         textarea.focus();
+        textarea.setRangeText(texto, inicio, fim, 'end');
     }
 
     function adicionarCampoPersonalizado() {
+        const textarea = document.getElementById('categoriaTexto');
+        // Guarda a posição do cursor ANTES de abrir o prompt (o prompt tira o foco do textarea)
+        const inicio = textarea.selectionStart;
+        const fim = textarea.selectionEnd;
+
         const nomeCampo = prompt('Nome do campo personalizado (ex: Reações que poderá ter):');
         if (nomeCampo && nomeCampo.trim()) {
-            inserirNoCursor('{' + nomeCampo.trim() + '}');
+            inserirNoCursor('[' + nomeCampo.trim() + ']', inicio, fim);
         }
     }
 
     function adicionarAssinatura() {
-        const rotulo = prompt('Texto abaixo da linha de assinatura:', 'Assinatura do Paciente');
-        if (rotulo !== null) {
-            const bloco = '\n_____________________________________\n' + rotulo.trim() + '\n\n';
-            inserirNoCursor(bloco);
-        }
+        // Insere a linha de assinatura direto na posição do cursor, sem prompt.
+        // O cursor fica posicionado logo abaixo da linha, pronto para o usuário
+        // digitar o nome da pessoa (ex: "Assinatura do Paciente").
+        const linhaAssinatura = '______________________________________________';
+        const bloco = '\n' + linhaAssinatura + '\n';
+        inserirNoCursor(bloco);
     }
 
     function resetarFormCategoria() {

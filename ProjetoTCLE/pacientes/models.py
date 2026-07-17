@@ -39,7 +39,8 @@ class CategoriaTemplate(models.Model):
         default='',
         help_text=(
             'Texto fixo obrigatório da categoria. Pode conter variáveis (@profissional, '
-            '@paciente, @responsavel, @data) e campos personalizados no formato {Nome do Campo}.'
+            '@paciente, @rgpaciente, @responsavel, @rgresponsavel, @data) e campos '
+            'personalizados no formato [Nome do Campo].'
         ),
     )
     criado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
