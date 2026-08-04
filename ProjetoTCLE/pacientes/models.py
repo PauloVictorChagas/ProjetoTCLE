@@ -79,6 +79,11 @@ class DocumentoEmitido(models.Model):
     dados_preenchidos = models.JSONField('Dados Colectados')
     responsavel_nome = models.CharField('Nome do Responsável', max_length=255, blank=True, null=True)
     responsavel_cpf = models.CharField('CPF do Responsável', max_length=14, blank=True, null=True)
+    responsavel_rg = models.CharField('RG do Responsável', max_length=20, blank=True, null=True)
+
+    texto_final = models.TextField('Texto Final do Termo (com variáveis substituídas)', blank=True, default='')
+    assinatura_paciente = models.TextField('Assinatura do Paciente/Responsável (base64)', blank=True, null=True)
+    assinatura_profissional = models.TextField('Assinatura do Profissional (base64)', blank=True, null=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDENTE')
     arquivo_pdf = models.FileField(upload_to='termos_selados/%Y/%m/%d/', blank=True, null=True)

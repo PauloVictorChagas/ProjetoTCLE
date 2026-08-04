@@ -361,9 +361,13 @@
                                     class="flex items-center gap-1.5 text-left text-xs px-2.5 py-1.5 rounded-md border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium">
                                     <i data-lucide="type" class="w-3.5 h-3.5"></i> Adicionar Campo
                                 </button>
-                                <button type="button" onclick="adicionarAssinatura()"
+                                <button type="button" onclick="adicionarAssinatura('paciente')"
                                     class="flex items-center gap-1.5 text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium">
-                                    <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Adicionar Assinatura
+                                    <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Assinatura Paciente/Responsável
+                                </button>
+                                <button type="button" onclick="adicionarAssinatura('profissional')"
+                                    class="flex items-center gap-1.5 text-left text-xs px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium">
+                                    <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Assinatura Profissional
                                 </button>
                             </div>
                         </div>
@@ -442,14 +446,23 @@
         // Divide o texto em pedaços: fixo, ou [Campo Personalizado]
         // (o formato {Campo} antigo também é reconhecido, para não quebrar categorias já cadastradas)
         const partes = [];
-        const regex = /\[([^\]]+)\]|\{([^}]+)\}/g;
+        // O grupo dos colchetes usa "*" (e não "+") para reconhecer também o campo
+        // vazio "[]" inserido pelo botão "Adicionar Campo".
+        const regex = /\[([^\]]*)\]|\{([^}]+)\}/g;
         let ultimoIndex = 0;
         let match;
         while ((match = regex.exec(texto)) !== null) {
             if (match.index > ultimoIndex) {
                 partes.push({ tipo: 'fixo', valor: texto.slice(ultimoIndex, match.index) });
             }
-            partes.push({ tipo: 'campo', valor: match[1] || match[2] });
+            // match[1] cobre o formato [ ] (pode vir vazio); match[2] cobre o formato legado { }
+            const valorCampo = match[1] !== undefined ? match[1] : match[2];
+            const normalizado = (valorCampo || '').trim().toLowerCase();
+            if (normalizado === 'assinatura_paciente' || normalizado === 'assinatura_profissional') {
+                partes.push({ tipo: 'assinatura', valor: normalizado, original: match[0] });
+            } else {
+                partes.push({ tipo: 'campo', valor: valorCampo });
+            }
             ultimoIndex = regex.lastIndex;
         }
         if (ultimoIndex < texto.length) {
@@ -478,12 +491,37 @@
                 span.style.color = '#334155';
                 span.textContent = parte.valor;
                 editor.appendChild(span);
+            } else if (parte.tipo === 'assinatura') {
+                const span = document.createElement('span');
+                span.contentEditable = 'false';
+                span.className = 'assinatura-marcador-template';
+                span.dataset.assinatura = parte.valor;
+                span.style.display = 'inline-block';
+                span.style.margin = '2px 2px';
+                span.style.padding = '2px 8px';
+                span.style.borderRadius = '9999px';
+                span.style.fontSize = '11px';
+                span.style.fontWeight = '600';
+                span.style.background = '#f1f5f9';
+                span.style.color = '#475569';
+                span.style.border = '1px solid #cbd5e1';
+                // O texto salvo precisa continuar sendo o marcador original
+                // ([assinatura_paciente]/[assinatura_profissional]); só o
+                // rótulo visual em tela é amigável.
+                span.textContent = parte.original;
+                span.title = parte.valor === 'assinatura_profissional'
+                    ? 'Assinatura do Profissional'
+                    : 'Assinatura do Paciente/Responsável';
+                editor.appendChild(span);
             } else {
+                // Campos vindos de "[]" (sem nome) recebem um rótulo genérico,
+                // já que não há um nome de campo definido na categoria.
+                const nomeCampo = parte.valor && parte.valor.trim() ? parte.valor.trim() : 'clique para preencher';
                 const span = document.createElement('span');
                 span.contentEditable = 'true';
                 span.className = 'campo-editavel-template';
-                span.dataset.campo = parte.valor;
-                span.setAttribute('data-placeholder', parte.valor);
+                span.dataset.campo = nomeCampo;
+                span.setAttribute('data-placeholder', nomeCampo);
                 span.style.display = 'inline-block';
                 span.style.minWidth = '90px';
                 span.style.padding = '0 6px';
@@ -517,10 +555,13 @@
             }
         }
 
-        // Reconstrói o texto final: texto fixo + valor digitado nos campos
+        // Reconstrói o texto final: texto fixo + valor digitado nos campos,
+        // mantendo os colchetes em volta do conteúdo preenchido
+        // (ex.: "[lave as mãos]").
         let textoFinal = '';
         editor.childNodes.forEach(node => {
-            textoFinal += node.textContent;
+            const ehCampo = node.nodeType === 1 && node.classList && node.classList.contains('campo-editavel-template');
+            textoFinal += ehCampo ? '[' + node.textContent + ']' : node.textContent;
         });
 
         document.getElementById('textoBaseFinal').value = textoFinal;
@@ -558,23 +599,26 @@
 
     function adicionarCampoPersonalizado() {
         const textarea = document.getElementById('categoriaTexto');
-        // Guarda a posição do cursor ANTES de abrir o prompt (o prompt tira o foco do textarea)
         const inicio = textarea.selectionStart;
         const fim = textarea.selectionEnd;
 
-        const nomeCampo = prompt('Nome do campo personalizado (ex: Reações que poderá ter):');
-        if (nomeCampo && nomeCampo.trim()) {
-            inserirNoCursor('[' + nomeCampo.trim() + ']', inicio, fim);
-        }
+        // Insere um campo vazio "[]" diretamente na posição do cursor. Esse
+        // campo se torna uma área editável quando um Template é criado a
+        // partir desta categoria (ver segmentarTexto/carregarTextoPadrao).
+        inserirNoCursor('[]', inicio, fim);
+
+        // Deixa o cursor posicionado entre os colchetes, pronto para digitar
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = inicio + 1;
     }
 
-    function adicionarAssinatura() {
-        // Insere a linha de assinatura direto na posição do cursor, sem prompt.
-        // O cursor fica posicionado logo abaixo da linha, pronto para o usuário
-        // digitar o nome da pessoa (ex: "Assinatura do Paciente").
-        const linhaAssinatura = '______________________________________________';
-        const bloco = '\n' + linhaAssinatura + '\n';
-        inserirNoCursor(bloco);
+    function adicionarAssinatura(tipo) {
+        // Insere um marcador de assinatura ([assinatura_paciente] ou
+        // [assinatura_profissional]) na posição do cursor. Na tela "Gerar TCLE"
+        // esse marcador é detectado e substituído pela assinatura capturada
+        // exatamente naquele ponto do texto.
+        const token = tipo === 'profissional' ? '[assinatura_profissional]' : '[assinatura_paciente]';
+        inserirNoCursor('\n' + token + '\n');
     }
 
     function resetarFormCategoria() {

@@ -27,6 +27,9 @@ class Usuario(AbstractUser):
     
     perfil = models.CharField('Nível de Acesso', max_length=20, choices=PERFIL_CHOICES, default='PADRAO')
     profissao = models.CharField('Profissão', max_length=100, blank=True, null=True)
+    registro_profissional = models.CharField(
+        'Registro Profissional (CRM/COREN/etc)', max_length=30, blank=True, null=True
+    )
     primeiro_acesso = models.BooleanField('Primeiro Acesso', default=True) # Trava de segurança
     
     instituicao = models.ForeignKey(

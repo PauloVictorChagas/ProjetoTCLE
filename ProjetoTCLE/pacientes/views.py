@@ -1,9 +1,61 @@
+import json
+import re
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Paciente, TemplateTCLE, CategoriaTemplate
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from django.http import HttpResponse
+from .models import Paciente, TemplateTCLE, CategoriaTemplate, DocumentoEmitido
 from usuarios.utils import get_instituicao_contexto, eh_admin_geral
+
+
+TOKEN_ASSINATURA_PACIENTE = re.compile(r'\[assinatura_paciente\]', re.IGNORECASE)
+TOKEN_ASSINATURA_PROFISSIONAL = re.compile(r'\[assinatura_profissional\]', re.IGNORECASE)
+
+
+def renderizar_corpo_documento(documento):
+    """
+    Escapa o texto final do TCLE e substitui os marcadores de assinatura
+    ([assinatura_paciente] / [assinatura_profissional]) pelas imagens
+    capturadas, exatamente no ponto do texto em que foram inseridos na
+    categoria. Se o template não tiver marcadores, as assinaturas
+    disponíveis são anexadas ao final do documento.
+    """
+    texto_escapado = escape(documento.texto_final or '')
+
+    img_paciente = (
+        f'<img src="{documento.assinatura_paciente}" class="assinatura-img">'
+        if documento.assinatura_paciente else
+        '<span class="assinatura-pendente">(assinatura do paciente/responsável)</span>'
+    )
+    img_profissional = (
+        f'<img src="{documento.assinatura_profissional}" class="assinatura-img">'
+        if documento.assinatura_profissional else
+        '<span class="assinatura-pendente">(assinatura do profissional)</span>'
+    )
+
+    tinha_token_paciente = bool(TOKEN_ASSINATURA_PACIENTE.search(texto_escapado))
+    tinha_token_profissional = bool(TOKEN_ASSINATURA_PROFISSIONAL.search(texto_escapado))
+
+    html = TOKEN_ASSINATURA_PACIENTE.sub(img_paciente, texto_escapado)
+    html = TOKEN_ASSINATURA_PROFISSIONAL.sub(img_profissional, html)
+    html = html.replace('\n', '<br>')
+
+    extra = ''
+    if not tinha_token_paciente and documento.assinatura_paciente:
+        extra += (
+            '<div class="assinatura-bloco"><p class="assinatura-legenda">'
+            f'Assinatura do Paciente/Responsável</p>{img_paciente}</div>'
+        )
+    if not tinha_token_profissional and documento.assinatura_profissional:
+        extra += (
+            '<div class="assinatura-bloco"><p class="assinatura-legenda">'
+            f'Assinatura do Profissional</p>{img_profissional}</div>'
+        )
+
+    return mark_safe(html + extra)
 
 
 def pode_gerenciar_categorias(user):
@@ -226,3 +278,163 @@ def editar_categoria(request, categoria_id):
 def teste_pdf(request):
     # Rota provisória para mantermos o urls.py funcionando
     return render(request, 'pacientes/teste_pdf.html')
+
+
+@login_required
+def gerar_tcle(request):
+    instituicao = get_instituicao_contexto(request)
+
+    if not instituicao:
+        if eh_admin_geral(request.user):
+            messages.error(request, 'Selecione uma Unidade de Saúde para gerar um TCLE.')
+            return redirect('painel_adm')
+        messages.error(request, 'Você precisa estar vinculado a uma Unidade de Saúde para gerar um TCLE.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        template_id = request.POST.get('template_id')
+        paciente_id = request.POST.get('paciente_id')
+        tipo = request.POST.get('tipo')  # 'paciente' ou 'responsavel'
+        responsavel_id = request.POST.get('responsavel_id')
+        texto_final = request.POST.get('texto_final', '').strip()
+        assinatura_paciente = request.POST.get('assinatura_paciente', '').strip()
+        assinatura_profissional = request.POST.get('assinatura_profissional', '').strip()
+
+        template_obj = get_object_or_404(TemplateTCLE, id=template_id, instituicao=instituicao)
+        paciente_obj = get_object_or_404(Paciente, id=paciente_id, instituicao=instituicao)
+
+        responsavel_obj = None
+        if tipo == 'responsavel':
+            if not responsavel_id:
+                messages.error(request, 'Selecione o Responsável para continuar.')
+                return redirect('gerar_tcle')
+            responsavel_obj = get_object_or_404(Paciente, id=responsavel_id, instituicao=instituicao)
+
+        if not texto_final:
+            messages.error(request, 'O texto do termo não pode ficar vazio.')
+            return redirect('gerar_tcle')
+
+        if not assinatura_paciente or not assinatura_profissional:
+            messages.error(request, 'É necessário coletar as duas assinaturas (Paciente/Responsável e Profissional) antes de salvar.')
+            return redirect('gerar_tcle')
+
+        dados_preenchidos = {
+            'tipo': tipo,
+            'paciente': {'nome': paciente_obj.nome, 'cpf': paciente_obj.cpf, 'rg': paciente_obj.rg},
+            'responsavel': (
+                {'nome': responsavel_obj.nome, 'cpf': responsavel_obj.cpf, 'rg': responsavel_obj.rg}
+                if responsavel_obj else None
+            ),
+            'profissional': {
+                'nome': request.user.get_full_name() or request.user.username,
+                'profissao': request.user.profissao or '',
+                'registro': request.user.registro_profissional or '',
+            },
+            'data': timezone.localdate().strftime('%d/%m/%Y'),
+        }
+
+        DocumentoEmitido.objects.create(
+            instituicao=instituicao,
+            paciente=paciente_obj,
+            template_origem=template_obj,
+            medico_emissor=request.user,
+            dados_preenchidos=dados_preenchidos,
+            responsavel_nome=responsavel_obj.nome if responsavel_obj else None,
+            responsavel_cpf=responsavel_obj.cpf if responsavel_obj else None,
+            responsavel_rg=responsavel_obj.rg if responsavel_obj else None,
+            texto_final=texto_final,
+            assinatura_paciente=assinatura_paciente,
+            assinatura_profissional=assinatura_profissional,
+            status='ASSINADO',
+        )
+
+        messages.success(request, 'TCLE gerado e assinado com sucesso!')
+        return redirect('pacientes')
+
+    templates = TemplateTCLE.objects.filter(instituicao=instituicao, ativo=True).select_related('categoria').order_by('titulo')
+    pacientes = Paciente.objects.filter(instituicao=instituicao).order_by('nome')
+
+    templates_json = {
+        str(t.id): {'titulo': t.titulo, 'categoria': t.categoria.nome, 'texto': t.texto_base}
+        for t in templates
+    }
+    pacientes_json = {
+        str(p.id): {'nome': p.nome, 'cpf': p.cpf, 'rg': p.rg}
+        for p in pacientes
+    }
+    profissional_json = {
+        'nome': request.user.get_full_name() or request.user.username,
+        'profissao': request.user.profissao or '',
+        'registro': request.user.registro_profissional or '',
+    }
+
+    contexto = {
+        'templates': templates,
+        'pacientes': pacientes,
+        'templates_dict': templates_json,
+        'pacientes_dict': pacientes_json,
+        'profissional_dict': profissional_json,
+        'data_hoje': timezone.localdate().strftime('%d/%m/%Y'),
+    }
+    return render(request, 'pacientes/gerar_tcle.html', contexto)
+
+@login_required
+def historico_tcle(request):
+    instituicao = get_instituicao_contexto(request)
+
+    if not instituicao:
+        if eh_admin_geral(request.user):
+            messages.error(request, 'Selecione uma Unidade de Saúde para ver o histórico.')
+            return redirect('painel_adm')
+        messages.error(request, 'Você precisa estar vinculado a uma Unidade de Saúde para ver o histórico.')
+        return redirect('dashboard')
+
+    documentos = DocumentoEmitido.objects.filter(instituicao=instituicao).select_related(
+        'paciente', 'template_origem', 'template_origem__categoria', 'medico_emissor'
+    ).order_by('-data_emissao')
+
+    busca = request.GET.get('busca', '').strip()
+    if busca:
+        documentos = documentos.filter(paciente__nome__icontains=busca)
+
+    documentos_view = []
+    for doc in documentos:
+        documentos_view.append({
+            'obj': doc,
+            'corpo_html': renderizar_corpo_documento(doc),
+        })
+
+    contexto = {
+        'documentos_view': documentos_view,
+        'busca': busca,
+    }
+    return render(request, 'pacientes/historico.html', contexto)
+
+
+@login_required
+def documento_pdf(request, documento_id):
+    instituicao = get_instituicao_contexto(request)
+    documento = get_object_or_404(
+        DocumentoEmitido.objects.select_related('paciente', 'template_origem', 'template_origem__categoria', 'medico_emissor'),
+        id=documento_id, instituicao=instituicao,
+    )
+
+    contexto = {
+        'documento': documento,
+        'instituicao': instituicao,
+        'corpo_html': renderizar_corpo_documento(documento),
+    }
+    html_string = render(request, 'pacientes/documento_pdf.html', contexto).content.decode('utf-8')
+
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        # Ambiente sem as dependências de sistema do WeasyPrint (Pango/Cairo)
+        # instaladas: devolve o termo em HTML para impressão manual do navegador.
+        return HttpResponse(html_string)
+
+    pdf_bytes = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    resposta = HttpResponse(pdf_bytes, content_type='application/pdf')
+    nome_arquivo = f"TCLE_{documento.paciente.nome.replace(' ', '_')}_{documento.id}.pdf"
+    resposta['Content-Disposition'] = f'inline; filename="{nome_arquivo}"'
+    return resposta

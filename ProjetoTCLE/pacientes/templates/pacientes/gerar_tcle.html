@@ -1,0 +1,583 @@
+{% extends 'usuarios/base.html' %}
+
+{% block content %}
+<div class="p-8 max-w-4xl mx-auto">
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-semibold text-slate-900 mb-1">Gerar Novo TCLE</h1>
+        <p class="text-slate-500 text-lg">Crie e colete assinatura de termo de consentimento</p>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div
+        class="mb-6 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if not templates %}
+    <div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+        <i data-lucide="file-text" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+        <h3 class="text-lg font-medium text-slate-900">Nenhum template disponível</h3>
+        <p class="text-slate-500 mt-1">Cadastre um template ativo na Biblioteca TCLE antes de gerar um documento.</p>
+    </div>
+    {% elif not pacientes %}
+    <div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+        <i data-lucide="users" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+        <h3 class="text-lg font-medium text-slate-900">Nenhum paciente cadastrado</h3>
+        <p class="text-slate-500 mt-1">Cadastre um paciente antes de gerar um TCLE.</p>
+    </div>
+    {% else %}
+
+    <!-- ======================= INDICADOR DE ETAPAS ======================= -->
+    <div class="flex items-center justify-center mb-10">
+        <div class="flex items-center flex-1 max-w-lg">
+            <div class="flex flex-col items-center">
+                <div id="stepCirculo1"
+                    class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm bg-blue-600 text-white transition-colors">
+                    1</div>
+                <span id="stepLabel1" class="text-xs mt-2 font-medium text-slate-900">Seleção</span>
+            </div>
+            <div id="stepLinha1" class="flex-1 h-px bg-slate-200 mx-2"></div>
+            <div class="flex flex-col items-center">
+                <div id="stepCirculo2"
+                    class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm bg-slate-200 text-slate-500 transition-colors">
+                    2</div>
+                <span id="stepLabel2" class="text-xs mt-2 font-medium text-slate-400">Revisão</span>
+            </div>
+            <div id="stepLinha2" class="flex-1 h-px bg-slate-200 mx-2"></div>
+            <div class="flex flex-col items-center">
+                <div id="stepCirculo3"
+                    class="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm bg-slate-200 text-slate-500 transition-colors">
+                    3</div>
+                <span id="stepLabel3" class="text-xs mt-2 font-medium text-slate-400">Assinatura</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= ETAPA 1: SELEÇÃO ======================= -->
+    <div id="painelStep1" class="space-y-6">
+
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="file-text" class="w-4 h-4 text-slate-700"></i>
+                <h2 class="font-semibold text-slate-900">Selecionar Template</h2>
+            </div>
+            <p class="text-slate-500 text-sm mb-4">Escolha o template de TCLE apropriado para o procedimento</p>
+
+            <div class="space-y-1 mb-4">
+                <label class="text-sm font-semibold text-slate-900">Template TCLE *</label>
+                <select id="selectTemplate"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <option value="">Selecione um template...</option>
+                    {% for t in templates %}
+                    <option value="{{ t.id }}">{{ t.categoria.nome }} - {{ t.titulo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-sm font-semibold text-slate-900">Documento será gerado para *</label>
+                <div class="flex gap-3">
+                    <button type="button" id="btnTipoPaciente" onclick="selecionarTipo('paciente')"
+                        class="flex-1 border-2 border-blue-600 bg-blue-50 text-blue-700 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">
+                        Paciente
+                    </button>
+                    <button type="button" id="btnTipoResponsavel" onclick="selecionarTipo('responsavel')"
+                        class="flex-1 border-2 border-slate-200 bg-white text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-slate-50 transition-colors">
+                        Responsável
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="user" class="w-4 h-4 text-slate-700"></i>
+                <h2 class="font-semibold text-slate-900">Selecionar Paciente</h2>
+            </div>
+            <p class="text-slate-500 text-sm mb-4">Escolha o paciente que receberá o TCLE</p>
+
+            <div class="space-y-1">
+                <label class="text-sm font-semibold text-slate-900">Paciente *</label>
+                <select id="selectPaciente" onchange="atualizarInfoPessoa('paciente')"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <option value="">Selecione um paciente...</option>
+                    {% for p in pacientes %}
+                    <option value="{{ p.id }}">{{ p.nome }} - {{ p.cpf }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="infoPaciente" class="hidden mt-4 bg-blue-50 rounded-lg p-4 text-sm text-blue-900"></div>
+        </div>
+
+        <div id="cardResponsavel" class="hidden bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="user-check" class="w-4 h-4 text-slate-700"></i>
+                <h2 class="font-semibold text-slate-900">Selecionar Responsável</h2>
+            </div>
+            <p class="text-slate-500 text-sm mb-4">Escolha a pessoa responsável que irá assinar pelo paciente</p>
+
+            <div class="space-y-1">
+                <label class="text-sm font-semibold text-slate-900">Responsável *</label>
+                <select id="selectResponsavel" onchange="atualizarInfoPessoa('responsavel')"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                    <option value="">Selecione o responsável...</option>
+                    {% for p in pacientes %}
+                    <option value="{{ p.id }}">{{ p.nome }} - {{ p.cpf }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="infoResponsavel" class="hidden mt-4 bg-blue-50 rounded-lg p-4 text-sm text-blue-900"></div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="button" onclick="irParaRevisao()"
+                class="bg-slate-950 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
+                Gerar TCLE
+                <i data-lucide="file-plus" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================= ETAPA 2: REVISÃO ======================= -->
+    <div id="painelStep2" class="hidden space-y-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h2 class="font-semibold text-slate-900">Revisar Conteúdo do TCLE</h2>
+            <p class="text-slate-500 text-sm mb-4">Revise e edite o conteúdo antes de coletar a assinatura</p>
+
+            <div class="space-y-1">
+                <label class="text-sm font-semibold text-slate-900">Conteúdo do TCLE</label>
+                <textarea id="textoRevisao" rows="18"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm leading-relaxed focus:ring-2 focus:ring-blue-100 outline-none transition-all"></textarea>
+            </div>
+        </div>
+
+        <div class="flex justify-between">
+            <button type="button" onclick="voltarPara(1)"
+                class="px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-colors">Voltar</button>
+            <button type="button" onclick="irParaAssinatura()"
+                class="bg-slate-950 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm">Próximo:
+                Assinatura</button>
+        </div>
+    </div>
+
+    <!-- ======================= ETAPA 3: ASSINATURA ======================= -->
+    <div id="painelStep3" class="hidden space-y-6">
+
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h2 class="font-semibold text-slate-900 mb-3">Pré-visualização do Termo</h2>
+            <div id="previewTexto"
+                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap"></div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h2 class="font-semibold text-slate-900">Assinatura do Paciente/Responsável</h2>
+            <p class="text-slate-500 text-sm mb-4">Solicite ao paciente (ou responsável legal) que assine usando a
+                mesa digitalizadora</p>
+            <p class="text-xs text-slate-500 mb-2">Assine no campo abaixo usando o mouse, teclado ou mesa
+                digitalizadora</p>
+
+            <div class="border-2 border-dashed border-slate-300 rounded-lg bg-white">
+                <canvas id="canvasPaciente" class="w-full touch-none cursor-crosshair" height="220"></canvas>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="limparAssinatura('paciente')"
+                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Limpar
+                </button>
+                <button type="button" onclick="confirmarAssinatura('paciente')"
+                    class="px-4 py-2 rounded-lg bg-slate-950 text-white text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
+                    <i data-lucide="save" class="w-4 h-4"></i> Confirmar Assinatura
+                </button>
+            </div>
+
+            <div id="statusPaciente" class="hidden mt-4 bg-green-50 text-green-800 text-sm rounded-lg p-4">
+                ✓ Assinatura do paciente/responsável coletada com sucesso
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h2 class="font-semibold text-slate-900">Assinatura do Profissional</h2>
+            <p class="text-slate-500 text-sm mb-4">Assinatura do usuário/profissional de saúde responsável pelo
+                atendimento</p>
+            <p class="text-xs text-slate-500 mb-2">Assine no campo abaixo usando o mouse, teclado ou mesa
+                digitalizadora</p>
+
+            <div class="border-2 border-dashed border-slate-300 rounded-lg bg-white">
+                <canvas id="canvasProfissional" class="w-full touch-none cursor-crosshair" height="220"></canvas>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="limparAssinatura('profissional')"
+                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Limpar
+                </button>
+                <button type="button" onclick="confirmarAssinatura('profissional')"
+                    class="px-4 py-2 rounded-lg bg-slate-950 text-white text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
+                    <i data-lucide="save" class="w-4 h-4"></i> Confirmar Assinatura
+                </button>
+            </div>
+
+            <div id="statusProfissional" class="hidden mt-4 bg-green-50 text-green-800 text-sm rounded-lg p-4">
+                ✓ Assinatura do profissional coletada com sucesso
+            </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-900">
+            <p class="font-semibold mb-1">Instruções para Mesa Digitalizadora:</p>
+            <ol class="list-decimal list-inside space-y-0.5">
+                <li>Conecte a mesa digitalizadora ao computador</li>
+                <li>Solicite à pessoa que assine no campo correspondente acima</li>
+                <li>A assinatura será capturada automaticamente pelo mouse do sistema</li>
+                <li>Clique em "Confirmar Assinatura" em cada campo para salvar</li>
+            </ol>
+        </div>
+
+        <div id="cardInformacoes" class="hidden bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h2 class="font-semibold text-slate-900 mb-4">Informações do Documento</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-slate-500">Paciente:</p>
+                    <p id="resumoPaciente" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Template:</p>
+                    <p id="resumoTemplate" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Profissional Responsável:</p>
+                    <p id="resumoProfissional" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Data:</p>
+                    <p id="resumoData" class="font-medium text-slate-900"></p>
+                </div>
+            </div>
+            <div class="mt-4 bg-blue-50 text-blue-900 text-sm rounded-lg p-3">
+                ✓ Documento completo e pronto para ser salvo (ambas as assinaturas coletadas)
+            </div>
+        </div>
+
+        <form method="POST" action="{% url 'gerar_tcle' %}" id="formSalvarTcle">
+            {% csrf_token %}
+            <input type="hidden" name="template_id" id="inputTemplateId">
+            <input type="hidden" name="paciente_id" id="inputPacienteId">
+            <input type="hidden" name="tipo" id="inputTipo">
+            <input type="hidden" name="responsavel_id" id="inputResponsavelId">
+            <input type="hidden" name="texto_final" id="inputTextoFinal">
+            <input type="hidden" name="assinatura_paciente" id="inputAssinaturaPaciente">
+            <input type="hidden" name="assinatura_profissional" id="inputAssinaturaProfissional">
+
+            <div class="flex justify-between">
+                <button type="button" onclick="voltarPara(2)"
+                    class="px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-colors">Voltar</button>
+                <button type="submit" id="btnSalvarTcle" disabled
+                    class="px-5 py-2.5 rounded-lg bg-slate-300 text-white font-medium flex items-center gap-2 cursor-not-allowed transition-colors">
+                    <i data-lucide="save" class="w-4 h-4"></i> Salvar TCLE
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% endif %}
+</div>
+
+{{ templates_dict|json_script:"templates-data" }}
+{{ pacientes_dict|json_script:"pacientes-data" }}
+{{ profissional_dict|json_script:"profissional-data" }}
+
+<script>
+    const TEMPLATES = JSON.parse(document.getElementById('templates-data').textContent);
+    const PACIENTES = JSON.parse(document.getElementById('pacientes-data').textContent);
+    const PROFISSIONAL = JSON.parse(document.getElementById('profissional-data').textContent);
+    const DATA_HOJE = "{{ data_hoje }}";
+
+    let tipoAtual = 'paciente';
+    let assinaturaPacienteDataUrl = null;
+    let assinaturaProfissionalDataUrl = null;
+
+    // ---------------------------------------------------------------
+    // Navegação entre etapas
+    // ---------------------------------------------------------------
+    function mostrarEtapa(numero) {
+        [1, 2, 3].forEach(n => {
+            document.getElementById('painelStep' + n).classList.toggle('hidden', n !== numero);
+            const ativo = n <= numero;
+            const circulo = document.getElementById('stepCirculo' + n);
+            const label = document.getElementById('stepLabel' + n);
+            circulo.className = 'w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm transition-colors ' +
+                (n === numero ? 'bg-blue-600 text-white' : (n < numero ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-500'));
+            label.className = 'text-xs mt-2 font-medium ' + (n <= numero ? 'text-slate-900' : 'text-slate-400');
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function voltarPara(numero) {
+        mostrarEtapa(numero);
+    }
+
+    // ---------------------------------------------------------------
+    // Etapa 1: Seleção
+    // ---------------------------------------------------------------
+    function selecionarTipo(tipo) {
+        tipoAtual = tipo;
+        const btnPaciente = document.getElementById('btnTipoPaciente');
+        const btnResponsavel = document.getElementById('btnTipoResponsavel');
+        const cardResponsavel = document.getElementById('cardResponsavel');
+
+        if (tipo === 'paciente') {
+            btnPaciente.className = 'flex-1 border-2 border-blue-600 bg-blue-50 text-blue-700 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors';
+            btnResponsavel.className = 'flex-1 border-2 border-slate-200 bg-white text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-slate-50 transition-colors';
+            cardResponsavel.classList.add('hidden');
+        } else {
+            btnResponsavel.className = 'flex-1 border-2 border-blue-600 bg-blue-50 text-blue-700 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors';
+            btnPaciente.className = 'flex-1 border-2 border-slate-200 bg-white text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-slate-50 transition-colors';
+            cardResponsavel.classList.remove('hidden');
+        }
+    }
+
+    function atualizarInfoPessoa(campo) {
+        const selectId = campo === 'paciente' ? 'selectPaciente' : 'selectResponsavel';
+        const infoId = campo === 'paciente' ? 'infoPaciente' : 'infoResponsavel';
+        const id = document.getElementById(selectId).value;
+        const info = document.getElementById(infoId);
+
+        if (!id || !PACIENTES[id]) {
+            info.classList.add('hidden');
+            return;
+        }
+        const p = PACIENTES[id];
+        info.innerHTML = 'CPF: ' + p.cpf + '<br>RG: ' + p.rg;
+        info.classList.remove('hidden');
+    }
+
+    function irParaRevisao() {
+        const templateId = document.getElementById('selectTemplate').value;
+        const pacienteId = document.getElementById('selectPaciente').value;
+        const responsavelId = document.getElementById('selectResponsavel').value;
+
+        if (!templateId) { alert('Selecione um Template TCLE.'); return; }
+        if (!pacienteId) { alert('Selecione um Paciente.'); return; }
+        if (tipoAtual === 'responsavel') {
+            if (!responsavelId) { alert('Selecione o Responsável.'); return; }
+            if (responsavelId === pacienteId) { alert('O Paciente e o Responsável não podem ser a mesma pessoa.'); return; }
+        }
+
+        document.getElementById('textoRevisao').value = gerarTextoSubstituido();
+        mostrarEtapa(2);
+    }
+
+    function gerarTextoSubstituido() {
+        const templateId = document.getElementById('selectTemplate').value;
+        const pacienteId = document.getElementById('selectPaciente').value;
+        const responsavelId = document.getElementById('selectResponsavel').value;
+
+        const paciente = PACIENTES[pacienteId];
+        const responsavel = (tipoAtual === 'responsavel') ? PACIENTES[responsavelId] : null;
+
+        let texto = TEMPLATES[templateId].texto;
+        texto = texto.split('@rgresponsavel').join(responsavel ? responsavel.rg : '');
+        texto = texto.split('@rgpaciente').join(paciente.rg);
+        texto = texto.split('@responsavel').join(responsavel ? responsavel.nome : '');
+        texto = texto.split('@paciente').join(paciente.nome);
+        texto = texto.split('@profissional').join(PROFISSIONAL.nome + (PROFISSIONAL.registro ? ' - ' + PROFISSIONAL.registro : ''));
+        texto = texto.split('@data').join(DATA_HOJE);
+        return texto;
+    }
+
+    // ---------------------------------------------------------------
+    // Etapa 2 -> Etapa 3
+    // ---------------------------------------------------------------
+    function irParaAssinatura() {
+        const texto = document.getElementById('textoRevisao').value.trim();
+        if (!texto) { alert('O conteúdo do TCLE não pode ficar vazio.'); return; }
+
+        document.getElementById('inputTemplateId').value = document.getElementById('selectTemplate').value;
+        document.getElementById('inputPacienteId').value = document.getElementById('selectPaciente').value;
+        document.getElementById('inputTipo').value = tipoAtual;
+        document.getElementById('inputResponsavelId').value = tipoAtual === 'responsavel' ? document.getElementById('selectResponsavel').value : '';
+        document.getElementById('inputTextoFinal').value = texto;
+
+        preencherResumo();
+        renderPreview();
+        mostrarEtapa(3);
+        setTimeout(inicializarCanvas, 50);
+    }
+
+    function preencherResumo() {
+        const templateId = document.getElementById('selectTemplate').value;
+        const pacienteId = document.getElementById('selectPaciente').value;
+        document.getElementById('resumoPaciente').innerText = PACIENTES[pacienteId].nome;
+        document.getElementById('resumoTemplate').innerText = TEMPLATES[templateId].categoria + ' - ' + TEMPLATES[templateId].titulo;
+        document.getElementById('resumoProfissional').innerText = PROFISSIONAL.nome + (PROFISSIONAL.registro ? ' - ' + PROFISSIONAL.registro : '');
+        document.getElementById('resumoData').innerText = DATA_HOJE;
+    }
+
+    function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.innerText = texto;
+        return div.innerHTML;
+    }
+
+    // Renderiza o texto final substituindo os marcadores de assinatura pelas
+    // imagens capturadas, exatamente no ponto do texto em que foram inseridos
+    // na categoria (ou, se o template não tiver marcadores, anexa as
+    // assinaturas ao final do documento).
+    function renderPreview() {
+        const texto = document.getElementById('inputTextoFinal').value;
+        let html = escapeHtml(texto);
+
+        const temTokenPaciente = /\[assinatura_paciente\]/i.test(texto);
+        const temTokenProfissional = /\[assinatura_profissional\]/i.test(texto);
+
+        const marcaPaciente = assinaturaPacienteDataUrl
+            ? '<img src="' + assinaturaPacienteDataUrl + '" class="inline-block h-14 align-middle border-b-2 border-slate-800 mx-1">'
+            : '<span class="inline-block px-4 py-1 border-b-2 border-dashed border-slate-300 text-slate-400 text-xs align-middle">(assinatura do paciente/responsável)</span>';
+
+        const marcaProfissional = assinaturaProfissionalDataUrl
+            ? '<img src="' + assinaturaProfissionalDataUrl + '" class="inline-block h-14 align-middle border-b-2 border-slate-800 mx-1">'
+            : '<span class="inline-block px-4 py-1 border-b-2 border-dashed border-slate-300 text-slate-400 text-xs align-middle">(assinatura do profissional)</span>';
+
+        html = html.replace(/\[assinatura_paciente\]/ig, marcaPaciente);
+        html = html.replace(/\[assinatura_profissional\]/ig, marcaProfissional);
+
+        let extra = '';
+        if (!temTokenPaciente && assinaturaPacienteDataUrl) {
+            extra += '<div class="mt-6"><p class="text-xs text-slate-500 mb-1">Assinatura do Paciente/Responsável</p>' + marcaPaciente + '</div>';
+        }
+        if (!temTokenProfissional && assinaturaProfissionalDataUrl) {
+            extra += '<div class="mt-6"><p class="text-xs text-slate-500 mb-1">Assinatura do Profissional</p>' + marcaProfissional + '</div>';
+        }
+
+        document.getElementById('previewTexto').innerHTML = html + extra;
+    }
+
+    // ---------------------------------------------------------------
+    // Etapa 3: Captura de assinatura (compatível com mouse e mesas
+    // digitalizadoras, que no sistema operacional se comportam como mouse,
+    // além de suporte a toque em telas sensíveis)
+    // ---------------------------------------------------------------
+    const canvasCtx = {};
+    const desenhando = {};
+
+    function inicializarCanvas() {
+        ['Paciente', 'Profissional'].forEach(nome => {
+            const canvas = document.getElementById('canvas' + nome);
+            if (!canvas || canvasCtx[nome]) return; // já inicializado
+
+            const escala = window.devicePixelRatio || 1;
+            const largura = canvas.clientWidth;
+            const altura = canvas.clientHeight;
+            canvas.width = largura * escala;
+            canvas.height = altura * escala;
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(escala, escala);
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            canvasCtx[nome] = ctx;
+            desenhando[nome] = false;
+
+            const posicao = (evento) => {
+                const rect = canvas.getBoundingClientRect();
+                const ponto = evento.touches ? evento.touches[0] : evento;
+                return { x: ponto.clientX - rect.left, y: ponto.clientY - rect.top };
+            };
+
+            const iniciar = (evento) => {
+                evento.preventDefault();
+                desenhando[nome] = true;
+                const p = posicao(evento);
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+            };
+            const mover = (evento) => {
+                if (!desenhando[nome]) return;
+                evento.preventDefault();
+                const p = posicao(evento);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            };
+            const parar = () => { desenhando[nome] = false; };
+
+            canvas.addEventListener('mousedown', iniciar);
+            canvas.addEventListener('mousemove', mover);
+            window.addEventListener('mouseup', parar);
+            canvas.addEventListener('touchstart', iniciar, { passive: false });
+            canvas.addEventListener('touchmove', mover, { passive: false });
+            canvas.addEventListener('touchend', parar);
+        });
+    }
+
+    function limparAssinatura(tipo) {
+        const nome = tipo === 'profissional' ? 'Profissional' : 'Paciente';
+        const canvas = document.getElementById('canvas' + nome);
+        const ctx = canvasCtx[nome];
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (tipo === 'paciente') {
+            assinaturaPacienteDataUrl = null;
+            document.getElementById('statusPaciente').classList.add('hidden');
+        } else {
+            assinaturaProfissionalDataUrl = null;
+            document.getElementById('statusProfissional').classList.add('hidden');
+        }
+        atualizarEstadoSalvar();
+        renderPreview();
+    }
+
+    function confirmarAssinatura(tipo) {
+        const nome = tipo === 'profissional' ? 'Profissional' : 'Paciente';
+        const canvas = document.getElementById('canvas' + nome);
+        const ctx = canvasCtx[nome];
+
+        const vazio = ctx && isCanvasVazio(canvas, ctx);
+        if (vazio) {
+            alert('Colete a assinatura antes de confirmar.');
+            return;
+        }
+
+        const dataUrl = canvas.toDataURL('image/png');
+        if (tipo === 'paciente') {
+            assinaturaPacienteDataUrl = dataUrl;
+            document.getElementById('inputAssinaturaPaciente').value = dataUrl;
+            document.getElementById('statusPaciente').classList.remove('hidden');
+        } else {
+            assinaturaProfissionalDataUrl = dataUrl;
+            document.getElementById('inputAssinaturaProfissional').value = dataUrl;
+            document.getElementById('statusProfissional').classList.remove('hidden');
+        }
+        renderPreview();
+        atualizarEstadoSalvar();
+    }
+
+    function isCanvasVazio(canvas, ctx) {
+        const dados = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 3; i < dados.length; i += 4) {
+            if (dados[i] !== 0) return false;
+        }
+        return true;
+    }
+
+    function atualizarEstadoSalvar() {
+        const completo = !!assinaturaPacienteDataUrl && !!assinaturaProfissionalDataUrl;
+        const btn = document.getElementById('btnSalvarTcle');
+        const card = document.getElementById('cardInformacoes');
+
+        btn.disabled = !completo;
+        btn.className = completo
+            ? 'px-5 py-2.5 rounded-lg bg-slate-950 text-white font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors'
+            : 'px-5 py-2.5 rounded-lg bg-slate-300 text-white font-medium flex items-center gap-2 cursor-not-allowed transition-colors';
+
+        card.classList.toggle('hidden', !completo);
+    }
+</script>
+{% endblock %}
