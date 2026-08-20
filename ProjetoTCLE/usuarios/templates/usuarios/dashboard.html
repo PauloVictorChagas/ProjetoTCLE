@@ -2,7 +2,7 @@
 <div class="p-8">
 
     <div class="mb-8">
-        <h1 class="text-2xl font-semibold mb-2">Bem-vindo(a), {{ request.user.first_name|default:"Administrador" }}!
+        <h1 class="text-2xl font-semibold mb-2">Bem-vindo, {{ request.user.first_name|default:"Administrador" }}
         </h1>
         <p class="text-slate-600">Visão geral do sistema de TCLE</p>
     </div>
@@ -14,7 +14,7 @@
                 <h3 class="text-sm font-medium text-slate-700">Total de TCLEs</h3>
                 <i data-lucide="file-text" class="w-4 h-4 text-slate-400"></i>
             </div>
-            <div class="text-2xl font-bold">0</div>
+            <div class="text-2xl font-bold">{{ total_tcles }}</div>
             <p class="text-xs text-slate-500 mt-1">Gerados no sistema</p>
         </div>
 
@@ -23,8 +23,8 @@
                 <h3 class="text-sm font-medium text-slate-700">Pacientes Cadastrados</h3>
                 <i data-lucide="users" class="w-4 h-4 text-slate-400"></i>
             </div>
-            <div class="text-2xl font-bold">0</div>
-            <p class="text-xs text-slate-500 mt-1">Total na base de dados</p>
+            <div class="text-2xl font-bold">{{ total_pacientes }}</div>
+            <p class="text-xs text-slate-500 mt-1">Total de pacientes</p>
         </div>
 
         <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
@@ -32,8 +32,14 @@
                 <h3 class="text-sm font-medium text-slate-700">TCLEs Assinados</h3>
                 <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
             </div>
-            <div class="text-2xl font-bold">0</div>
-            <p class="text-xs text-slate-500 mt-1">Documentos finalizados</p>
+            <div class="text-2xl font-bold">{{ total_assinados }}</div>
+            <p class="text-xs text-slate-500 mt-1">
+                {% if total_tcles > 0 %}
+                {% widthratio total_assinados total_tcles 100 %}% do total
+                {% else %}
+                0% do total
+                {% endif %}
+            </p>
         </div>
 
         <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
@@ -41,8 +47,96 @@
                 <h3 class="text-sm font-medium text-slate-700">Pendentes</h3>
                 <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
             </div>
-            <div class="text-2xl font-bold">0</div>
+            <div class="text-2xl font-bold">{{ total_pendentes }}</div>
             <p class="text-xs text-slate-500 mt-1">Aguardando assinatura</p>
+        </div>
+
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm mb-8">
+        <h2 class="text-lg font-semibold mb-1">Ações Rápidas</h2>
+        <p class="text-sm text-slate-500 mb-4">Acesso rápido às funcionalidades principais</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{% url 'gerar_tcle' %}"
+                class="flex items-center justify-center gap-2 bg-slate-900 text-white rounded-lg py-4 px-4 text-sm font-medium hover:bg-slate-800 transition-colors">
+                <i data-lucide="file-plus" class="w-4 h-4"></i> Gerar Novo TCLE
+            </a>
+            <a href="{% url 'pacientes' %}"
+                class="flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg py-4 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                <i data-lucide="users" class="w-4 h-4"></i> Cadastrar Paciente
+            </a>
+            <a href="{% url 'historico' %}"
+                class="flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg py-4 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Ver Histórico
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-1">Documentos Recentes</h2>
+            <p class="text-sm text-slate-500 mb-4">Últimos TCLEs gerados no sistema</p>
+
+            <div class="space-y-3">
+                {% for doc in documentos_recentes %}
+                <div class="flex items-center justify-between border border-slate-100 rounded-lg px-4 py-3">
+                    <div>
+                        <p class="text-sm font-medium text-slate-900">{{ doc.paciente.nome }}</p>
+                        <p class="text-xs text-slate-500">
+                            {% if doc.template_origem.categoria %}{{ doc.template_origem.categoria.nome }}{% else %}—{% endif %}
+                        </p>
+                        <p class="text-xs text-slate-400">{{ doc.data_emissao|date:"d/m/Y" }}</p>
+                    </div>
+                    {% if doc.status == 'ASSINADO' %}
+                    <span
+                        class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">Assinado</span>
+                    {% elif doc.status == 'PENDENTE' %}
+                    <span
+                        class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">Pendente</span>
+                    {% elif doc.status == 'RECUSADO' %}
+                    <span
+                        class="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700">Recusado</span>
+                    {% else %}
+                    <span
+                        class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Cancelado</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400 py-4 text-center">Nenhum documento gerado ainda.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-1">Biblioteca de Templates</h2>
+            <p class="text-sm text-slate-500 mb-4">Templates disponíveis por categoria</p>
+
+            <div class="bg-blue-50 rounded-lg px-4 py-3 flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm font-medium text-slate-900">Total de Templates</p>
+                    <p class="text-xs text-slate-500">Disponíveis para uso</p>
+                </div>
+                <span class="text-xl font-bold text-slate-900">{{ total_templates }}</span>
+            </div>
+
+            <div class="space-y-2">
+                {% for categoria in categorias_templates %}
+                <div class="flex items-center justify-between border border-slate-100 rounded-lg px-4 py-2.5">
+                    <span class="text-sm text-slate-700">{{ categoria.nome }}</span>
+                    <span
+                        class="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{{ categoria.qtd_templates }}</span>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400 py-4 text-center">Nenhum template cadastrado ainda.</p>
+                {% endfor %}
+            </div>
+
+            <a href="{% url 'biblioteca' %}"
+                class="mt-4 flex items-center justify-center w-full border border-slate-200 rounded-lg py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                Ver Todos os Templates
+            </a>
         </div>
 
     </div>

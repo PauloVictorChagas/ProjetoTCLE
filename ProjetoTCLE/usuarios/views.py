@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
+from django.db.models import Count
 from .models import Instituicao, Usuario
 from .utils import eh_admin_geral, get_instituicao_contexto
+from pacientes.models import Paciente, DocumentoEmitido, TemplateTCLE, CategoriaTemplate
 
 def eh_admin(user):
     return eh_admin_geral(user)
@@ -35,7 +37,39 @@ def dashboard(request):
     if request.user.primeiro_acesso and not request.user.is_superuser:
         messages.warning(request, 'Por segurança, você precisa alterar sua senha provisória.')
         return redirect('trocar_senha')
-    return render(request, 'usuarios/dashboard.html')
+
+    instituicao = get_instituicao_contexto(request)
+
+    contexto = {
+        'total_tcles': 0,
+        'total_pacientes': 0,
+        'total_assinados': 0,
+        'total_pendentes': 0,
+        'documentos_recentes': [],
+        'total_templates': 0,
+        'categorias_templates': [],
+    }
+
+    if instituicao:
+        documentos = DocumentoEmitido.objects.filter(instituicao=instituicao)
+        contexto['total_tcles'] = documentos.count()
+        contexto['total_pacientes'] = Paciente.objects.filter(instituicao=instituicao).count()
+        contexto['total_assinados'] = documentos.filter(status='ASSINADO').count()
+        contexto['total_pendentes'] = documentos.filter(status='PENDENTE').count()
+        contexto['documentos_recentes'] = documentos.select_related(
+            'paciente', 'template_origem', 'template_origem__categoria'
+        ).order_by('-data_emissao')[:5]
+
+        templates = TemplateTCLE.objects.filter(instituicao=instituicao)
+        contexto['total_templates'] = templates.count()
+        contexto['categorias_templates'] = (
+            CategoriaTemplate.objects.filter(instituicao=instituicao)
+            .annotate(qtd_templates=Count('templates'))
+            .filter(qtd_templates__gt=0)
+            .order_by('-qtd_templates')
+        )
+
+    return render(request, 'usuarios/dashboard.html', contexto)
 
 @login_required
 def trocar_senha(request):
