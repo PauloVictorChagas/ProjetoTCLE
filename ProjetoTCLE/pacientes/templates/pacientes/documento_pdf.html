@@ -6,26 +6,27 @@
     <style>
         @page {
             size: A4;
-            margin: 2.2cm 2cm;
+            /* Margens no padrão ABNT: 3cm superior/esquerda, 2cm inferior/direita */
+            margin: 3cm 2cm 2cm 3cm;
             @bottom-center {
                 content: "Documento gerado eletronicamente em {{ documento.data_emissao|date:'d/m/Y H:i' }} - TCLE #{{ documento.id }}";
-                font-size: 8px;
+                font-size: 8pt;
                 color: #94a3b8;
             }
         }
         body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'Arial', 'DejaVu Sans', sans-serif;
             color: #1e293b;
-            font-size: 12px;
-            line-height: 1.6;
+            font-size: 12pt;
+            line-height: 1.5;
         }
         h1 {
-            font-size: 16px;
+            font-size: 16pt;
             margin-bottom: 2px;
         }
         .subtitulo {
             color: #64748b;
-            font-size: 11px;
+            font-size: 11pt;
             margin-bottom: 18px;
         }
         .info-grid {
@@ -40,7 +41,7 @@
         .info-label, .info-valor {
             display: table-cell;
             padding: 4px 0;
-            font-size: 11px;
+            font-size: 11pt;
         }
         .info-label {
             color: #64748b;
@@ -55,7 +56,9 @@
             margin: 18px 0;
         }
         .corpo-documento {
-            font-size: 12px;
+            font-family: 'Arial', 'DejaVu Sans', sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
             text-align: justify;
         }
         .assinatura-img {
@@ -66,20 +69,20 @@
         }
         .assinatura-pendente {
             color: #94a3b8;
-            font-size: 11px;
+            font-size: 11pt;
             font-style: italic;
         }
         .assinatura-bloco {
             margin-top: 18px;
         }
         .assinatura-legenda {
-            font-size: 10px;
+            font-size: 10pt;
             color: #64748b;
             margin-bottom: 4px;
         }
         .selo {
             margin-top: 24px;
-            font-size: 9px;
+            font-size: 9pt;
             color: #94a3b8;
         }
     </style>
@@ -119,7 +122,7 @@
         {{ corpo_html }}
     </div>
 
-    <p class="selo">Documento #{{ documento.id }} gerado pelo sistema ProjetoTCLE. As assinaturas exibidas foram
+    <p class="selo">Documento #{{ documento.id }} gerado por TCLE Digital. As assinaturas exibidas foram
         coletadas eletronicamente no momento da emissão deste termo.</p>
 </body>
 </html>

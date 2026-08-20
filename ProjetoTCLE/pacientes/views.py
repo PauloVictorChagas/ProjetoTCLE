@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.http import HttpResponse
+from django.db.models import Q
+from django.core.mail import EmailMessage
 from .models import Paciente, TemplateTCLE, CategoriaTemplate, DocumentoEmitido
 from usuarios.utils import get_instituicao_contexto, eh_admin_geral
 
@@ -389,26 +391,67 @@ def historico_tcle(request):
         messages.error(request, 'Você precisa estar vinculado a uma Unidade de Saúde para ver o histórico.')
         return redirect('dashboard')
 
-    documentos = DocumentoEmitido.objects.filter(instituicao=instituicao).select_related(
+    documentos_base = DocumentoEmitido.objects.filter(instituicao=instituicao)
+
+    total = documentos_base.count()
+    total_assinados = documentos_base.filter(status='ASSINADO').count()
+    total_pendentes = documentos_base.filter(status='PENDENTE').count()
+    total_recusados = documentos_base.filter(status='RECUSADO').count()
+
+    documentos = documentos_base.select_related(
         'paciente', 'template_origem', 'template_origem__categoria', 'medico_emissor'
     ).order_by('-data_emissao')
 
     busca = request.GET.get('busca', '').strip()
-    if busca:
-        documentos = documentos.filter(paciente__nome__icontains=busca)
+    status_filtro = request.GET.get('status', '').strip()
 
-    documentos_view = []
-    for doc in documentos:
-        documentos_view.append({
-            'obj': doc,
-            'corpo_html': renderizar_corpo_documento(doc),
-        })
+    if busca:
+        documentos = documentos.filter(
+            Q(paciente__nome__icontains=busca) |
+            Q(template_origem__titulo__icontains=busca) |
+            Q(template_origem__categoria__nome__icontains=busca)
+        )
+    if status_filtro:
+        documentos = documentos.filter(status=status_filtro)
+
+    documentos_view = [
+        {'obj': doc, 'corpo_html': renderizar_corpo_documento(doc)}
+        for doc in documentos
+    ]
 
     contexto = {
         'documentos_view': documentos_view,
         'busca': busca,
+        'status_filtro': status_filtro,
+        'status_choices': DocumentoEmitido.STATUS_CHOICES,
+        'total': total,
+        'total_assinados': total_assinados,
+        'total_pendentes': total_pendentes,
+        'total_recusados': total_recusados,
+        'total_filtrado': len(documentos_view),
     }
     return render(request, 'pacientes/historico.html', contexto)
+
+
+def _gerar_pdf_bytes(request, documento):
+    """
+    Renderiza o template documento_pdf.html e converte para PDF via
+    WeasyPrint. Retorna None se o WeasyPrint (ou suas dependências de
+    sistema, como Pango/Cairo) não estiver disponível no ambiente.
+    """
+    contexto = {
+        'documento': documento,
+        'instituicao': documento.instituicao,
+        'corpo_html': renderizar_corpo_documento(documento),
+    }
+    html_string = render(request, 'pacientes/documento_pdf.html', contexto).content.decode('utf-8')
+
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        return None
+
+    return HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
 
 
 @login_required
@@ -419,22 +462,63 @@ def documento_pdf(request, documento_id):
         id=documento_id, instituicao=instituicao,
     )
 
-    contexto = {
-        'documento': documento,
-        'instituicao': instituicao,
-        'corpo_html': renderizar_corpo_documento(documento),
-    }
-    html_string = render(request, 'pacientes/documento_pdf.html', contexto).content.decode('utf-8')
+    pdf_bytes = _gerar_pdf_bytes(request, documento)
 
-    try:
-        from weasyprint import HTML
-    except ImportError:
+    if pdf_bytes is None:
         # Ambiente sem as dependências de sistema do WeasyPrint (Pango/Cairo)
         # instaladas: devolve o termo em HTML para impressão manual do navegador.
-        return HttpResponse(html_string)
+        contexto = {
+            'documento': documento,
+            'instituicao': instituicao,
+            'corpo_html': renderizar_corpo_documento(documento),
+        }
+        return render(request, 'pacientes/documento_pdf.html', contexto)
 
-    pdf_bytes = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
     resposta = HttpResponse(pdf_bytes, content_type='application/pdf')
     nome_arquivo = f"TCLE_{documento.paciente.nome.replace(' ', '_')}_{documento.id}.pdf"
     resposta['Content-Disposition'] = f'inline; filename="{nome_arquivo}"'
     return resposta
+
+
+@login_required
+def documento_enviar_email(request, documento_id):
+    instituicao = get_instituicao_contexto(request)
+    documento = get_object_or_404(
+        DocumentoEmitido.objects.select_related('paciente', 'template_origem', 'template_origem__categoria', 'medico_emissor'),
+        id=documento_id, instituicao=instituicao,
+    )
+
+    if request.method != 'POST':
+        return redirect('historico')
+
+    destinatario = documento.paciente.email
+    if not destinatario:
+        messages.error(
+            request,
+            f'Não foi possível enviar: o paciente {documento.paciente.nome} não possui e-mail cadastrado.'
+        )
+        return redirect('historico')
+
+    pdf_bytes = _gerar_pdf_bytes(request, documento)
+
+    assunto = f'TCLE - {documento.template_origem.categoria.nome} - {documento.paciente.nome}'
+    corpo = (
+        f'Olá, {documento.paciente.nome}.\n\n'
+        f'Segue em anexo o Termo de Consentimento Livre e Esclarecido referente a '
+        f'"{documento.template_origem.categoria.nome} - {documento.template_origem.titulo}", '
+        f'emitido em {timezone.localtime(documento.data_emissao).strftime("%d/%m/%Y às %H:%M")}.\n\n'
+        f'Este é um e-mail automático enviado por TCLE Digital.'
+    )
+
+    email = EmailMessage(assunto, corpo, to=[destinatario])
+    if pdf_bytes:
+        nome_arquivo = f"TCLE_{documento.paciente.nome.replace(' ', '_')}_{documento.id}.pdf"
+        email.attach(nome_arquivo, pdf_bytes, 'application/pdf')
+
+    try:
+        email.send(fail_silently=False)
+        messages.success(request, f'TCLE enviado por e-mail para {destinatario}.')
+    except Exception as exc:
+        messages.error(request, f'Não foi possível enviar o e-mail: {exc}')
+
+    return redirect('historico')

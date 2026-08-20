@@ -68,6 +68,7 @@ class DocumentoEmitido(models.Model):
     STATUS_CHOICES = [
         ('PENDENTE', 'Aguardando Assinatura'),
         ('ASSINADO', 'Concluído e Selado'),
+        ('RECUSADO', 'Recusado pelo Paciente'),
         ('CANCELADO', 'Cancelado'),
     ]
 

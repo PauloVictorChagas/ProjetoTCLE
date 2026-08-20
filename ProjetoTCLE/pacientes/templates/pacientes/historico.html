@@ -1,17 +1,11 @@
 {% extends 'usuarios/base.html' %}
 
 {% block content %}
-<div class="p-8 max-w-5xl mx-auto">
+<div class="p-8 max-w-6xl mx-auto">
 
-    <div class="mb-8 flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-semibold text-slate-900 mb-1">Histórico de TCLEs</h1>
-            <p class="text-slate-500 text-lg">Termos de consentimento já gerados</p>
-        </div>
-        <a href="{% url 'gerar_tcle' %}"
-            class="bg-slate-950 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
-            <i data-lucide="file-plus" class="w-4 h-4"></i> Gerar TCLE
-        </a>
+    <div class="mb-8">
+        <h1 class="text-3xl font-semibold text-slate-900 mb-1">Histórico de Documentos</h1>
+        <p class="text-slate-500 text-lg">Visualize e gerencie todos os TCLEs gerados</p>
     </div>
 
     {% if messages %}
@@ -23,31 +17,79 @@
     {% endfor %}
     {% endif %}
 
-    <form method="GET" class="mb-6">
-        <div class="relative max-w-md">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input type="text" name="busca" value="{{ busca }}" placeholder="Buscar por nome do paciente..."
-                class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+    <!-- ======================= CARDS DE ESTATÍSTICA ======================= -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-slate-500">Total</p>
+                <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <p class="text-2xl font-semibold text-slate-900">{{ total }}</p>
         </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-slate-500">Assinados</p>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <p class="text-2xl font-semibold text-slate-900">{{ total_assinados }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-slate-500">Pendentes</p>
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+            </div>
+            <p class="text-2xl font-semibold text-slate-900">{{ total_pendentes }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-slate-500">Recusados</p>
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            </div>
+            <p class="text-2xl font-semibold text-slate-900">{{ total_recusados }}</p>
+        </div>
+    </div>
+
+    <!-- ======================= BUSCA + FILTRO ======================= -->
+    <form method="GET" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm mb-6 flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" name="busca" value="{{ busca }}" placeholder="Buscar por paciente, procedimento ou template..."
+                class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+        </div>
+        <select name="status" onchange="this.form.submit()"
+            class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+            <option value="">Todos os status</option>
+            {% for chave, rotulo in status_choices %}
+            <option value="{{ chave }}" {% if status_filtro == chave %}selected{% endif %}>{{ rotulo }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit"
+            class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+            <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
+        </button>
     </form>
 
-    {% if not documentos_view %}
-    <div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
-        <i data-lucide="history" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
-        <h3 class="text-lg font-medium text-slate-900">Nenhum TCLE encontrado</h3>
-        <p class="text-slate-500 mt-1">
-            {% if busca %}Nenhum resultado para "{{ busca }}".{% else %}Os TCLEs gerados aparecerão aqui.{% endif %}
-        </p>
-    </div>
-    {% else %}
-
+    <!-- ======================= LISTA DE DOCUMENTOS ======================= -->
     <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div class="p-5 border-b border-slate-200">
+            <h2 class="font-semibold text-slate-900">Documentos</h2>
+            <p class="text-sm text-slate-500">{{ total_filtrado }} documento{{ total_filtrado|pluralize }} encontrado{{ total_filtrado|pluralize }}</p>
+        </div>
+
+        {% if not documentos_view %}
+        <div class="text-center py-14">
+            <i data-lucide="file-search" class="w-10 h-10 mx-auto text-slate-300 mb-3"></i>
+            <h3 class="text-slate-900 font-medium">Nenhum documento encontrado</h3>
+            <p class="text-slate-500 text-sm mt-1">
+                {% if busca or status_filtro %}Ajuste a busca ou o filtro de status.{% else %}Os TCLEs gerados aparecerão aqui.{% endif %}
+            </p>
+        </div>
+        {% else %}
         <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                <tr>
+            <thead class="text-slate-500 text-xs uppercase tracking-wider">
+                <tr class="border-b border-slate-100">
                     <th class="text-left px-5 py-3 font-semibold">Paciente</th>
                     <th class="text-left px-5 py-3 font-semibold">Template</th>
-                    <th class="text-left px-5 py-3 font-semibold">Profissional</th>
                     <th class="text-left px-5 py-3 font-semibold">Data</th>
                     <th class="text-left px-5 py-3 font-semibold">Status</th>
                     <th class="text-right px-5 py-3 font-semibold">Ações</th>
@@ -57,31 +99,49 @@
                 {% for item in documentos_view %}
                 {% with doc=item.obj %}
                 <tr class="hover:bg-slate-50">
-                    <td class="px-5 py-3 font-medium text-slate-900">{{ doc.paciente.nome }}</td>
-                    <td class="px-5 py-3 text-slate-600">
-                        {{ doc.template_origem.categoria.nome }} - {{ doc.template_origem.titulo }}
+                    <td class="px-5 py-3">
+                        <p class="font-medium text-slate-900">{{ doc.paciente.nome }}</p>
+                        <p class="text-xs text-slate-500">{{ doc.paciente.cpf }}</p>
                     </td>
-                    <td class="px-5 py-3 text-slate-600">{{ doc.medico_emissor.get_full_name|default:doc.medico_emissor.username }}</td>
-                    <td class="px-5 py-3 text-slate-600">{{ doc.data_emissao|date:"d/m/Y H:i" }}</td>
+                    <td class="px-5 py-3 text-slate-600">
+                        {{ doc.template_origem.categoria.nome }}
+                        <p class="text-xs text-slate-400">{{ doc.template_origem.titulo }}</p>
+                    </td>
+                    <td class="px-5 py-3 text-slate-600">
+                        {{ doc.data_emissao|date:"d/m/Y" }}
+                        <p class="text-xs text-slate-400">{{ doc.data_emissao|date:"H:i" }}</p>
+                    </td>
                     <td class="px-5 py-3">
                         {% if doc.status == 'ASSINADO' %}
-                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full">Concluído</span>
+                        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full">Assinado</span>
+                        {% elif doc.status == 'RECUSADO' %}
+                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-700 text-xs font-medium px-2.5 py-1 rounded-full">Recusado</span>
                         {% elif doc.status == 'CANCELADO' %}
-                        <span class="inline-flex items-center gap-1 bg-red-50 text-red-700 text-xs font-medium px-2.5 py-1 rounded-full">Cancelado</span>
+                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-xs font-medium px-2.5 py-1 rounded-full">Cancelado</span>
                         {% else %}
-                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-full">Pendente</span>
+                        <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs font-medium px-2.5 py-1 rounded-full">Pendente</span>
                         {% endif %}
                     </td>
                     <td class="px-5 py-3">
-                        <div class="flex justify-end gap-2">
+                        <div class="flex justify-end items-center gap-1">
                             <button type="button" onclick="abrirVisualizacao({{ doc.id }})"
-                                class="p-2 rounded-md hover:bg-slate-100 text-slate-600" title="Visualizar">
+                                class="p-2 rounded-md hover:bg-slate-100 text-slate-600" title="Visualizar detalhes">
                                 <i data-lucide="eye" class="w-4 h-4"></i>
                             </button>
                             <a href="{% url 'documento_pdf' doc.id %}" target="_blank"
                                 class="p-2 rounded-md hover:bg-slate-100 text-slate-600" title="Baixar PDF">
                                 <i data-lucide="download" class="w-4 h-4"></i>
                             </a>
+                            <form method="POST" action="{% url 'documento_enviar_email' doc.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="p-2 rounded-md hover:bg-slate-100 text-slate-600" title="Enviar por e-mail">
+                                    <i data-lucide="mail" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                            <button type="button" onclick="imprimirDocumento('{% url 'documento_pdf' doc.id %}')"
+                                class="p-2 rounded-md hover:bg-slate-100 text-slate-600" title="Imprimir">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -89,10 +149,13 @@
                 <template id="dados-doc-{{ doc.id }}">
                     <div data-titulo="{{ doc.template_origem.categoria.nome }} - {{ doc.template_origem.titulo }}"
                         data-paciente="{{ doc.paciente.nome }}"
+                        data-cpf="{{ doc.paciente.cpf }}"
                         data-responsavel="{{ doc.responsavel_nome|default:'' }}"
-                        data-profissional="{{ doc.medico_emissor.get_full_name|default:doc.medico_emissor.username }}"
-                        data-data="{{ doc.data_emissao|date:"d/m/Y H:i" }}"
+                        data-categoria="{{ doc.template_origem.categoria.nome }}"
+                        data-data="{{ doc.data_emissao|date:'d/m/Y, H:i:s' }}"
+                        data-status="{{ doc.get_status_display }}"
                         data-pdf="{% url 'documento_pdf' doc.id %}"
+                        data-email-url="{% url 'documento_enviar_email' doc.id %}"
                         data-corpo="{{ item.corpo_html }}">
                     </div>
                 </template>
@@ -100,36 +163,71 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% endif %}
     </div>
 
-    {% endif %}
 </div>
 
-<!-- ======================= MODAL DE VISUALIZAÇÃO ======================= -->
+<!-- ======================= MODAL: DETALHES DO TCLE ======================= -->
 <div id="modalVisualizarDocumento" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between p-5 border-b border-slate-200">
-            <div>
-                <h3 id="modalTitulo" class="font-semibold text-slate-900"></h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                    <span id="modalPaciente"></span> · <span id="modalData"></span>
-                </p>
-            </div>
-            <button type="button" onclick="fecharVisualizacao()" class="p-2 rounded-md hover:bg-slate-100 text-slate-500">
+            <h3 class="font-semibold text-slate-900 text-lg">Detalhes do TCLE</h3>
+            <button type="button" onclick="fecharVisualizacao()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-500">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
-        <div class="p-5 overflow-y-auto text-sm text-slate-700 leading-relaxed">
-            <div id="modalResponsavelBloco" class="hidden mb-3 text-xs text-slate-500"></div>
-            <div id="modalCorpo"></div>
+
+        <div class="p-5 overflow-y-auto text-sm">
+            <div class="bg-slate-50 rounded-lg p-4 grid grid-cols-2 gap-y-3 gap-x-4 mb-5">
+                <div>
+                    <p class="text-slate-500 text-xs">Paciente</p>
+                    <p id="modalPaciente" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs">CPF</p>
+                    <p id="modalCpf" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs">Template</p>
+                    <p id="modalTitulo" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs">Categoria</p>
+                    <p id="modalCategoria" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs">Data de Criação</p>
+                    <p id="modalData" class="font-medium text-slate-900"></p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs">Status</p>
+                    <p id="modalStatus" class="font-medium text-slate-900"></p>
+                </div>
+            </div>
+
+            <div id="modalResponsavelBloco" class="hidden mb-4 text-xs text-slate-500"></div>
+
+            <p class="font-semibold text-slate-900 mb-2">Conteúdo do Documento</p>
+            <div id="modalCorpo" class="bg-slate-50 border border-slate-200 rounded-lg p-4 text-slate-700 leading-relaxed max-h-64 overflow-y-auto"></div>
         </div>
-        <div class="p-5 border-t border-slate-200 flex justify-end gap-3">
-            <button type="button" onclick="fecharVisualizacao()"
-                class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors">Fechar</button>
+
+        <div class="p-5 border-t border-slate-200 flex flex-wrap justify-end gap-3">
             <a id="modalBaixarPdf" href="#" target="_blank"
-                class="px-4 py-2 rounded-lg bg-slate-950 text-white text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
-                <i data-lucide="download" class="w-4 h-4"></i> Baixar PDF
+                class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
+                <i data-lucide="download" class="w-4 h-4"></i> Download PDF
             </a>
+            <form id="modalFormEmail" method="POST" action="#">
+                {% csrf_token %}
+                <button type="submit"
+                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
+                    <i data-lucide="mail" class="w-4 h-4"></i> Enviar por E-mail
+                </button>
+            </form>
+            <button type="button" id="modalImprimir" onclick="imprimirDocumento(document.getElementById('modalBaixarPdf').href)"
+                class="px-4 py-2 rounded-lg bg-slate-950 text-white text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
+                <i data-lucide="printer" class="w-4 h-4"></i> Imprimir
+            </button>
         </div>
     </div>
 </div>
@@ -146,9 +244,13 @@
         const dados = document.getElementById('dados-doc-' + id).content.querySelector('div');
         document.getElementById('modalTitulo').innerText = dados.dataset.titulo;
         document.getElementById('modalPaciente').innerText = dados.dataset.paciente;
+        document.getElementById('modalCpf').innerText = dados.dataset.cpf;
+        document.getElementById('modalCategoria').innerText = dados.dataset.categoria;
         document.getElementById('modalData').innerText = dados.dataset.data;
+        document.getElementById('modalStatus').innerText = dados.dataset.status;
         document.getElementById('modalCorpo').innerHTML = dados.dataset.corpo;
         document.getElementById('modalBaixarPdf').href = dados.dataset.pdf;
+        document.getElementById('modalFormEmail').action = dados.dataset.emailUrl;
 
         const blocoResp = document.getElementById('modalResponsavelBloco');
         if (dados.dataset.responsavel) {
@@ -163,6 +265,28 @@
 
     function fecharVisualizacao() {
         document.getElementById('modalVisualizarDocumento').classList.add('hidden');
+    }
+
+    // Imprime o PDF usando um iframe oculto (evita depender de pop-up e
+    // aproveita o visualizador de PDF nativo do navegador, que já suporta
+    // impressão).
+    function imprimirDocumento(url) {
+        let iframe = document.getElementById('iframeImpressaoTcle');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'iframeImpressaoTcle';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+        }
+        iframe.onload = function () {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (e) {
+                window.open(url, '_blank');
+            }
+        };
+        iframe.src = url;
     }
 </script>
 {% endblock %}

@@ -37,6 +37,7 @@ urlpatterns = [
     # Rotas para o Histórico de TCLEs emitidos e download do PDF
     path('historico/', pacientes_views.historico_tcle, name='historico'),
     path('documentos/<int:documento_id>/pdf/', pacientes_views.documento_pdf, name='documento_pdf'),
+    path('documentos/<int:documento_id>/enviar-email/', pacientes_views.documento_enviar_email, name='documento_enviar_email'),
 
     # Rotas de Categorias de TCLE (Administrador e Coordenador)
     path('categorias/nova/', pacientes_views.criar_categoria, name='criar_categoria'),
