@@ -138,6 +138,38 @@
     <script>
         lucide.createIcons();
     </script>
+
+    <script>
+        // Política de senhas do sistema (espelha usuarios/validators.py).
+        // Quem decide de verdade é o backend; isto é só feedback imediato ao usuário.
+        function erosPoliticaSenha(senha) {
+            senha = senha || '';
+            const erros = [];
+            if (senha.length < 8) erros.push('mínimo de 8 caracteres');
+            if (!/[A-Za-z]/.test(senha)) erros.push('pelo menos 1 letra');
+            if (!/[0-9]/.test(senha)) erros.push('pelo menos 1 número');
+            if (!/[^A-Za-z0-9\s]/.test(senha)) erros.push('pelo menos 1 caractere especial');
+
+            for (let i = 0; i < senha.length - 1; i++) {
+                const a = senha[i], b = senha[i + 1];
+                if (/[0-9]/.test(a) && /[0-9]/.test(b) && Math.abs(parseInt(a, 10) - parseInt(b, 10)) === 1) {
+                    erros.push('sem números em sequência (ex.: 12, 321, 456)');
+                    break;
+                }
+            }
+            return erros;
+        }
+
+        function validarPoliticaSenha(senha, permitirVazia) {
+            if (permitirVazia && !senha) return true;
+            const erros = erosPoliticaSenha(senha);
+            if (erros.length) {
+                alert('A senha não atende à política de segurança:\n- ' + erros.join('\n- '));
+                return false;
+            }
+            return true;
+        }
+    </script>
 </body>
 
 </html>

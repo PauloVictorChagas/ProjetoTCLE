@@ -10,16 +10,17 @@
             </div>
         </div>
 
-        <form method="POST" class="space-y-4">
+        <form method="POST" class="space-y-4" onsubmit="return validarTrocaSenha()">
             {% csrf_token %}
             <div>
                 <label class="text-sm font-medium text-slate-700">Digite a Nova Senha</label>
-                <input type="password" name="senha1" required minlength="6"
+                <input type="password" name="senha1" id="senha1" required minlength="8"
                     class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+                <p class="text-xs text-slate-400 mt-1">Mínimo de 8 caracteres, com letra, número e caractere especial. Sem números em sequência (ex.: 12, 321, 456).</p>
             </div>
             <div>
                 <label class="text-sm font-medium text-slate-700">Confirme a Nova Senha</label>
-                <input type="password" name="senha2" required minlength="6"
+                <input type="password" name="senha2" id="senha2" required minlength="8"
                     class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
             </div>
             <button type="submit"
@@ -29,4 +30,16 @@
         </form>
     </div>
 </div>
+
+<script>
+    function validarTrocaSenha() {
+        const senha1 = document.getElementById('senha1').value;
+        const senha2 = document.getElementById('senha2').value;
+        if (senha1 !== senha2) {
+            alert('As senhas não coincidem.');
+            return false;
+        }
+        return validarPoliticaSenha(senha1, false);
+    }
+</script>
 {% endblock %}

@@ -133,7 +133,7 @@
         </div>
 
         <div class="p-6 overflow-y-auto">
-            <form method="POST" class="space-y-4">
+            <form method="POST" class="space-y-4" onsubmit="return validarPoliticaSenha(document.getElementById('senhaCadastro').value, false)">
                 {% csrf_token %}
 
                 <div class="space-y-1">
@@ -173,8 +173,9 @@
 
                 <div class="space-y-1">
                     <label class="text-sm font-medium text-slate-700">Senha Provisória *</label>
-                    <input type="password" name="senha" required
+                    <input type="password" name="senha" id="senhaCadastro" required minlength="8"
                         class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <p class="text-xs text-slate-400">Mínimo de 8 caracteres, com letra, número e caractere especial. Sem números em sequência.</p>
                 </div>
 
                 <button type="submit"
@@ -203,7 +204,8 @@
         </div>
 
         <div class="p-6 overflow-y-auto">
-            <form method="POST" id="formEditar" action="" class="space-y-4">
+            <form method="POST" id="formEditar" action="" class="space-y-4"
+                onsubmit="return validarPoliticaSenha(document.getElementById('edit_senha').value, true)">
                 {% csrf_token %}
 
                 <div class="space-y-1">
@@ -235,9 +237,9 @@
 
                 <div class="space-y-1">
                     <label class="text-sm font-medium text-slate-700">Nova Senha</label>
-                    <input type="password" name="senha" placeholder="Deixe em branco para manter a senha atual"
+                    <input type="password" name="senha" id="edit_senha" placeholder="Deixe em branco para manter a senha atual"
                         class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <p class="text-xs text-slate-400">Por segurança, a senha atual nunca é exibida.</p>
+                    <p class="text-xs text-slate-400">Por segurança, a senha atual nunca é exibida. Se preenchida, deve seguir a política de senhas (mín. 8 caracteres, letra, número, caractere especial, sem sequências).</p>
                 </div>
 
                 <button type="submit"

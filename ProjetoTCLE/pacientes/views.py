@@ -176,6 +176,19 @@ def biblioteca_tcle(request):
         titulo = request.POST.get('titulo')
         categoria_id = request.POST.get('categoria')
         texto_base = request.POST.get('texto_base')
+        # Resumo do card: obrigatório, em uma linha só, com limite de caracteres
+        resumo = ' '.join((request.POST.get('resumo') or '').split())
+
+        if not resumo:
+            messages.error(request, 'Informe o resumo do template.')
+            return redirect('biblioteca')
+        if len(resumo) > TemplateTCLE.RESUMO_MAX_LENGTH:
+            messages.error(
+                request,
+                f'O resumo deve ter no máximo {TemplateTCLE.RESUMO_MAX_LENGTH} caracteres '
+                f'(o texto enviado tem {len(resumo)}).'
+            )
+            return redirect('biblioteca')
 
         categoria_obj = get_object_or_404(CategoriaTemplate, id=categoria_id, instituicao=instituicao)
 
@@ -184,6 +197,7 @@ def biblioteca_tcle(request):
                 # EDITAR
                 template = get_object_or_404(TemplateTCLE, id=template_id, instituicao=instituicao)
                 template.titulo = titulo
+                template.resumo = resumo
                 template.categoria = categoria_obj
                 template.texto_base = texto_base
                 template.ativo = request.POST.get('ativo') == 'on' # Transforma o checkbox HTML em Boolean
@@ -195,6 +209,7 @@ def biblioteca_tcle(request):
                     instituicao=instituicao,
                     categoria=categoria_obj,
                     titulo=titulo,
+                    resumo=resumo,
                     texto_base=texto_base,
                     criado_por=request.user,
                     ativo=True
@@ -219,6 +234,7 @@ def biblioteca_tcle(request):
         'templates': templates,
         'categorias': categorias,
         'categorias_dict': categorias_json,
+        'resumo_max_length': TemplateTCLE.RESUMO_MAX_LENGTH,
         'pode_gerenciar_categorias': pode_gerenciar_categorias(request.user),
     }
     return render(request, 'pacientes/biblioteca.html', contexto)

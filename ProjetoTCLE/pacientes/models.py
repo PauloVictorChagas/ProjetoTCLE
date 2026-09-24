@@ -52,9 +52,19 @@ class CategoriaTemplate(models.Model):
         unique_together = ('instituicao', 'nome')
 
 class TemplateTCLE(models.Model):
+    # Limite de caracteres do resumo exibido no card da Biblioteca
+    RESUMO_MAX_LENGTH = 160
+
     instituicao = models.ForeignKey(Instituicao, on_delete=models.CASCADE, related_name='templates')
     categoria = models.ForeignKey(CategoriaTemplate, on_delete=models.PROTECT, related_name='templates')
     titulo = models.CharField('Título do Template', max_length=255)
+    resumo = models.CharField(
+        'Resumo do Template',
+        max_length=RESUMO_MAX_LENGTH,
+        blank=True,
+        default='',
+        help_text='Breve descrição do documento, exibida no card do template na Biblioteca.',
+    )
     texto_base = models.TextField('Texto Base do Termo')
     configuracao_campos = models.JSONField('Configuração dos Campos Dinâmicos', default=dict, blank=True)
     ativo = models.BooleanField('Disponível para os Médicos', default=True)

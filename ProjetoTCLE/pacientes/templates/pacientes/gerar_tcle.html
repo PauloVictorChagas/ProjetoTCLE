@@ -172,7 +172,8 @@
         <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h2 class="font-semibold text-slate-900 mb-3">Pré-visualização do Termo</h2>
             <div id="previewTexto"
-                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap"></div>
+                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+            </div>
         </div>
 
         <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
@@ -207,21 +208,30 @@
             <p class="text-slate-500 text-sm mb-4">Assinatura do usuário/profissional de saúde responsável pelo
                 atendimento</p>
             <p class="text-xs text-slate-500 mb-2">Assine no campo abaixo usando o mouse, teclado ou mesa
-                digitalizadora</p>
+                digitalizadora, ou importe uma assinatura já salva (PNG/JPG)</p>
 
             <div class="border-2 border-dashed border-slate-300 rounded-lg bg-white">
                 <canvas id="canvasProfissional" class="w-full touch-none cursor-crosshair" height="220"></canvas>
             </div>
 
-            <div class="flex justify-end gap-3 mt-4">
-                <button type="button" onclick="limparAssinatura('profissional')"
-                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Limpar
+            <input type="file" id="fileAssinaturaProfissional" accept="image/png,image/jpeg" class="hidden"
+                onchange="handleImportarAssinatura('profissional', event)">
+
+            <div class="flex justify-between items-center gap-3 mt-4 flex-wrap">
+                <button type="button" onclick="document.getElementById('fileAssinaturaProfissional').click()"
+                    class="px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium flex items-center gap-2 hover:bg-blue-100 transition-colors">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Importar Assinatura
                 </button>
-                <button type="button" onclick="confirmarAssinatura('profissional')"
-                    class="px-4 py-2 rounded-lg bg-slate-950 text-white text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
-                    <i data-lucide="save" class="w-4 h-4"></i> Confirmar Assinatura
-                </button>
+                <div class="flex gap-3">
+                    <button type="button" onclick="limparAssinatura('profissional')"
+                        class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Limpar
+                    </button>
+                    <button type="button" onclick="confirmarAssinatura('profissional')"
+                        class="px-4 py-2 rounded-lg bg-slate-950 text-white text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors">
+                        <i data-lucide="save" class="w-4 h-4"></i> Confirmar Assinatura
+                    </button>
+                </div>
             </div>
 
             <div id="statusProfissional" class="hidden mt-4 bg-green-50 text-green-800 text-sm rounded-lg p-4">
@@ -557,6 +567,69 @@
         }
         renderPreview();
         atualizarEstadoSalvar();
+    }
+
+    // ---------------------------------------------------------------
+    // Importar assinatura previamente salva (arquivo de imagem PNG/JPG)
+    // Evita que o profissional precise desenhar a assinatura manualmente
+    // toda vez que gerar um novo TCLE ao longo do dia.
+    // ---------------------------------------------------------------
+    function handleImportarAssinatura(tipo, evento) {
+        const arquivo = evento.target.files && evento.target.files[0];
+        if (!arquivo) return;
+
+        if (!arquivo.type.startsWith('image/')) {
+            alert('Selecione um arquivo de imagem (PNG ou JPG).');
+            evento.target.value = '';
+            return;
+        }
+
+        const nome = tipo === 'profissional' ? 'Profissional' : 'Paciente';
+
+        const leitor = new FileReader();
+        leitor.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+                if (!canvasCtx[nome]) inicializarCanvas();
+
+                const canvas = document.getElementById('canvas' + nome);
+                const ctx = canvasCtx[nome];
+                const escala = window.devicePixelRatio || 1;
+                const largura = canvas.width / escala;
+                const altura = canvas.height / escala;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Mantém a proporção original da assinatura, centralizando-a
+                // dentro do canvas sem distorcer a imagem.
+                const razao = Math.min(largura / img.width, altura / img.height);
+                const larguraDesenho = img.width * razao;
+                const alturaDesenho = img.height * razao;
+                const x = (largura - larguraDesenho) / 2;
+                const y = (altura - alturaDesenho) / 2;
+                ctx.drawImage(img, x, y, larguraDesenho, alturaDesenho);
+
+                const dataUrl = canvas.toDataURL('image/png');
+                if (tipo === 'paciente') {
+                    assinaturaPacienteDataUrl = dataUrl;
+                    document.getElementById('inputAssinaturaPaciente').value = dataUrl;
+                    document.getElementById('statusPaciente').classList.remove('hidden');
+                } else {
+                    assinaturaProfissionalDataUrl = dataUrl;
+                    document.getElementById('inputAssinaturaProfissional').value = dataUrl;
+                    document.getElementById('statusProfissional').classList.remove('hidden');
+                }
+                renderPreview();
+                atualizarEstadoSalvar();
+            };
+            img.onerror = function () {
+                alert('Não foi possível ler o arquivo selecionado. Tente outra imagem.');
+            };
+            img.src = e.target.result;
+        };
+        leitor.readAsDataURL(arquivo);
+
+        evento.target.value = ''; // permite selecionar o mesmo arquivo novamente depois
     }
 
     function isCanvasVazio(canvas, ctx) {

@@ -17,3 +17,12 @@ def get_instituicao_contexto(request):
         return Instituicao.objects.filter(id=inst_id).first()
 
     return user.instituicao
+
+
+def senha_pendente(user):
+    """
+    True se o usuário ainda está com a senha inicial (provisória) e precisa trocá-la.
+    O superusuário criado pelo `createsuperuser` fica de fora: ele não recebe
+    senha provisória de ninguém.
+    """
+    return bool(user.is_authenticated and user.primeiro_acesso and not user.is_superuser)

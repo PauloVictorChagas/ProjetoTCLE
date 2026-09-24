@@ -81,7 +81,7 @@
             </button>
         </div>
 
-        <form method="POST" class="p-6">
+        <form method="POST" class="p-6" onsubmit="return validarPoliticaSenha(document.getElementById('senhaCoord').value, false)">
             {% csrf_token %}
 
             <div class="grid grid-cols-2 gap-8">
@@ -118,8 +118,9 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Senha Inicial *</label>
-                        <input type="password" name="senha_coord" required
+                        <input type="password" name="senha_coord" id="senhaCoord" required minlength="8"
                             class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none">
+                        <p class="text-xs text-slate-400 mt-1">Mínimo de 8 caracteres, com letra, número e caractere especial. Sem números em sequência.</p>
                     </div>
                 </div>
             </div>

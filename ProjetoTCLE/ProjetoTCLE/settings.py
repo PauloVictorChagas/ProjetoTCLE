@@ -50,6 +50,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Bloqueia todo o sistema enquanto a senha inicial não for trocada
+    'usuarios.middleware.TrocaSenhaObrigatoriaMiddleware',
 ]
 
 ROOT_URLCONF = 'ProjetoTCLE.urls'
@@ -78,8 +80,12 @@ WSGI_APPLICATION = 'ProjetoTCLE.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'TCLE',
+        'USER': 'postgres',
+        'PASSWORD': 'TCLE628026',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -99,6 +105,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        # Política do sistema: 8+ caracteres, letra, número, caractere especial e sem sequências numéricas
+        'NAME': 'usuarios.validators.PoliticaSenhaValidator',
     },
 ]
 

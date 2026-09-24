@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <title>TCLE - {{ documento.paciente.nome }}</title>
@@ -8,78 +9,96 @@
             size: A4;
             /* Margens no padrão ABNT: 3cm superior/esquerda, 2cm inferior/direita */
             margin: 3cm 2cm 2cm 3cm;
+
             @bottom-center {
                 content: "Documento gerado eletronicamente em {{ documento.data_emissao|date:'d/m/Y H:i' }} - TCLE #{{ documento.id }}";
                 font-size: 8pt;
                 color: #94a3b8;
             }
         }
+
         body {
             font-family: 'Arial', 'DejaVu Sans', sans-serif;
             color: #1e293b;
             font-size: 12pt;
             line-height: 1.5;
         }
+
         h1 {
             font-size: 16pt;
             margin-bottom: 2px;
         }
+
         .subtitulo {
             color: #64748b;
             font-size: 11pt;
             margin-bottom: 18px;
         }
+
         .info-grid {
             display: table;
             width: 100%;
             margin-bottom: 20px;
             border-collapse: collapse;
         }
+
         .info-linha {
             display: table-row;
         }
-        .info-label, .info-valor {
+
+        .info-label,
+        .info-valor {
             display: table-cell;
             padding: 4px 0;
             font-size: 11pt;
         }
+
         .info-label {
             color: #64748b;
             width: 30%;
         }
+
         .info-valor {
             font-weight: bold;
             color: #0f172a;
         }
+
         .separador {
             border-top: 1px solid #e2e8f0;
             margin: 18px 0;
         }
+
         .corpo-documento {
             font-family: 'Arial', 'DejaVu Sans', sans-serif;
             font-size: 12pt;
             line-height: 1.5;
             text-align: justify;
         }
+
         .assinatura-img {
-            max-height: 55px;
+            max-height: 100px;
+            max-width: 280px;
             display: inline-block;
             vertical-align: middle;
             margin: 0 4px;
         }
+
         .assinatura-pendente {
             color: #94a3b8;
             font-size: 11pt;
             font-style: italic;
         }
+
         .assinatura-bloco {
             margin-top: 18px;
         }
+
         .assinatura-legenda {
             font-size: 10pt;
             color: #64748b;
             margin-bottom: 4px;
         }
+
         .selo {
             margin-top: 24px;
             font-size: 9pt;
@@ -87,9 +106,11 @@
         }
     </style>
 </head>
+
 <body>
     <h1>Termo de Consentimento Livre e Esclarecido</h1>
-    <p class="subtitulo">{{ documento.template_origem.categoria.nome }} - {{ documento.template_origem.titulo }} · {{ instituicao.nome }}</p>
+    <p class="subtitulo">{{ documento.template_origem.categoria.nome }} - {{ documento.template_origem.titulo }} · {{
+        instituicao.nome }}</p>
 
     <div class="info-grid">
         <div class="info-linha">
@@ -104,7 +125,8 @@
         {% endif %}
         <div class="info-linha">
             <div class="info-label">Profissional Responsável</div>
-            <div class="info-valor">{{ documento.medico_emissor.get_full_name|default:documento.medico_emissor.username }}</div>
+            <div class="info-valor">{{ documento.medico_emissor.get_full_name|default:documento.medico_emissor.username
+                }}</div>
         </div>
         <div class="info-linha">
             <div class="info-label">Data de Emissão</div>
@@ -125,4 +147,5 @@
     <p class="selo">Documento #{{ documento.id }} gerado por TCLE Digital. As assinaturas exibidas foram
         coletadas eletronicamente no momento da emissão deste termo.</p>
 </body>
+
 </html>

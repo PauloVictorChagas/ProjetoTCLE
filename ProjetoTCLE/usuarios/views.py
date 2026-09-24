@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db.models import Count
 from .models import Instituicao, Usuario
 from .utils import eh_admin_geral, get_instituicao_contexto
+from .validators import erros_politica_senha
 from pacientes.models import Paciente, DocumentoEmitido, TemplateTCLE, CategoriaTemplate
 
 def eh_admin(user):
@@ -33,12 +34,15 @@ def sair_unidade(request):
 
 @login_required
 def dashboard(request):
-    # Se for o primeiro acesso (e não for o ADM principal), força a troca de senha
-    if request.user.primeiro_acesso and not request.user.is_superuser:
-        messages.warning(request, 'Por segurança, você precisa alterar sua senha provisória.')
-        return redirect('trocar_senha')
-
+    # A troca obrigatória da senha inicial é imposta pelo
+    # TrocaSenhaObrigatoriaMiddleware, para todas as rotas do sistema.
     instituicao = get_instituicao_contexto(request)
+
+    # O Dashboard é sempre o de UMA unidade. O Administrador Geral que ainda não
+    # entrou em nenhuma unidade não tem Dashboard: ele começa (e volta) na tela
+    # de gerenciamento/seleção de unidades.
+    if eh_admin_geral(request.user) and not instituicao:
+        return redirect('painel_adm')
 
     contexto = {
         'total_tcles': 0,
@@ -74,19 +78,23 @@ def dashboard(request):
 @login_required
 def trocar_senha(request):
     if request.method == 'POST':
-        senha1 = request.POST.get('senha1')
-        senha2 = request.POST.get('senha2')
-        
-        if senha1 == senha2 and len(senha1) >= 6:
+        senha1 = request.POST.get('senha1') or ''
+        senha2 = request.POST.get('senha2') or ''
+
+        erros = erros_politica_senha(senha1)
+
+        if senha1 != senha2:
+            messages.error(request, 'As senhas não coincidem.')
+        elif erros:
+            messages.error(request, ' '.join(erros))
+        else:
             request.user.set_password(senha1)
             request.user.primeiro_acesso = False # Tira a trava
             request.user.save()
             update_session_auth_hash(request, request.user) # Impede o Django de deslogar o usuário
             messages.success(request, 'Sua senha foi atualizada com sucesso!')
             return redirect('dashboard')
-        else:
-            messages.error(request, 'As senhas não coincidem ou são muito curtas (mínimo 6 caracteres).')
-            
+
     return render(request, 'usuarios/trocar_senha.html')
 
 @login_required
@@ -124,6 +132,14 @@ def gerenciar_equipe(request, id_instituicao=None):
         # Usuário Padrão, não importa o que tenha vindo no formulário.
         if not is_admin:
             perfil = 'PADRAO'
+
+        # A senha provisória também precisa cumprir a política de senhas.
+        erros_senha = erros_politica_senha(senha)
+        if erros_senha:
+            messages.error(request, ' '.join(erros_senha))
+            if id_instituicao:
+                return redirect('gerenciar_equipe_inst', id_instituicao=instituicao.id)
+            return redirect('gerenciar_equipe')
 
         try:
             novo_user = Usuario.objects.create_user(username=email, email=email, password=senha)
@@ -177,6 +193,10 @@ def editar_membro_equipe(request, membro_id):
 
         nova_senha = request.POST.get('senha')
         if nova_senha:
+            erros_senha = erros_politica_senha(nova_senha)
+            if erros_senha:
+                messages.error(request, ' '.join(erros_senha))
+                return redirect('gerenciar_equipe')
             membro.set_password(nova_senha)
 
         try:
@@ -201,6 +221,12 @@ def painel_adm(request):
         nome_coord = request.POST.get('nome_coord')
         email_coord = request.POST.get('email_coord')
         senha_coord = request.POST.get('senha_coord')
+
+        # Valida a senha ANTES de criar a unidade, para não deixar unidade sem coordenador.
+        erros_senha = erros_politica_senha(senha_coord)
+        if erros_senha:
+            messages.error(request, ' '.join(erros_senha))
+            return redirect('painel_adm')
 
         try:
             nova_inst = Instituicao.objects.create(nome=nome_inst, cnpj=cnpj, telefone=telefone)

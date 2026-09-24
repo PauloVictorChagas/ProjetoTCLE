@@ -69,21 +69,11 @@
             <p class="text-slate-500 text-sm mb-6">{{ template.categoria.nome }}</p>
 
             <div class="mt-auto">
-                <p class="text-sm text-slate-600 mb-3">Variáveis substituídas na geração:</p>
-                <div class="flex flex-wrap gap-2 mb-6">
-                    <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@paciente</span>
-                    <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@rgpaciente</span>
-                    <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@responsavel</span>
-                    <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@rgresponsavel</span>
-                    <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@profissional</span>
-                    <span
-                        class="border border-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md bg-slate-50">@data</span>
-                </div>
+                {% if template.resumo %}
+                <p class="text-sm text-slate-600 mb-6 break-words">{{ template.resumo }}</p>
+                {% else %}
+                <p class="text-sm text-slate-400 italic mb-6">Sem resumo cadastrado.</p>
+                {% endif %}
 
                 <div class="flex gap-3 pt-4 border-t border-slate-100">
                     <button data-titulo="{{ template.titulo }}" data-categoria="{{ template.categoria.nome }}"
@@ -94,6 +84,7 @@
 
                     <button data-id="{{ template.id }}" data-titulo="{{ template.titulo }}"
                         data-categoria-id="{{ template.categoria.id }}" data-texto="{{ template.texto_base }}"
+                        data-resumo="{{ template.resumo }}"
                         data-ativo="{{ template.ativo|yesno:'true,false' }}" onclick="abrirModalEditarTemplate(this)"
                         class="border border-slate-200 text-slate-700 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                         <i data-lucide="edit" class="w-4 h-4"></i>
@@ -161,6 +152,18 @@
                             {% endfor %}
                         </select>
                     </div>
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between items-end">
+                        <label for="novoResumo" class="text-sm font-semibold text-slate-900">Resumo do Template *</label>
+                        <span class="text-xs text-slate-400"><span id="novoResumoContador">0</span>/{{ resumo_max_length }}</span>
+                    </div>
+                    <textarea name="resumo" id="novoResumo" rows="2" required maxlength="{{ resumo_max_length }}"
+                        oninput="atualizarContadorResumo('novoResumo', 'novoResumoContador')"
+                        placeholder="Ex: Consentimento para cirurgia de retirada do apêndice."
+                        class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                    <p class="text-xs text-slate-500">Breve descrição do documento, exibida no card do template.</p>
                 </div>
 
                 <div class="space-y-1">
@@ -252,6 +255,17 @@
                             {% endfor %}
                         </select>
                     </div>
+                </div>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between items-end">
+                        <label for="editResumo" class="text-sm font-semibold text-slate-900">Resumo do Template *</label>
+                        <span class="text-xs text-slate-400"><span id="editResumoContador">0</span>/{{ resumo_max_length }}</span>
+                    </div>
+                    <textarea name="resumo" id="editResumo" rows="2" required maxlength="{{ resumo_max_length }}"
+                        oninput="atualizarContadorResumo('editResumo', 'editResumoContador')"
+                        class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all resize-none"></textarea>
+                    <p class="text-xs text-slate-500">Breve descrição do documento, exibida no card do template.</p>
                 </div>
 
                 <div class="flex items-center gap-2 py-2">
@@ -429,8 +443,15 @@
         document.getElementById('editTitulo').value = botao.dataset.titulo;
         document.getElementById('editCategoria').value = botao.dataset.categoriaId;
         document.getElementById('editTextoBase').value = botao.dataset.texto;
+        document.getElementById('editResumo').value = botao.dataset.resumo || '';
+        atualizarContadorResumo('editResumo', 'editResumoContador');
         document.getElementById('editAtivo').checked = botao.dataset.ativo === 'true';
         abrirModal('modalEditarTemplate');
+    }
+
+    // Contador de caracteres do resumo (o limite vem do backend, via maxlength)
+    function atualizarContadorResumo(idCampo, idContador) {
+        document.getElementById(idContador).innerText = document.getElementById(idCampo).value.length;
     }
 
     // ---------------------------------------------------------------
@@ -542,6 +563,12 @@
 
         if (!categoriaId) {
             alert('Selecione uma categoria.');
+            return false;
+        }
+
+        if (!document.getElementById('novoResumo').value.trim()) {
+            alert('Informe o resumo do template.');
+            document.getElementById('novoResumo').focus();
             return false;
         }
 
