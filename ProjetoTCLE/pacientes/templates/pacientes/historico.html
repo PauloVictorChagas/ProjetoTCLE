@@ -156,7 +156,7 @@
                         data-status="{{ doc.get_status_display }}"
                         data-pdf="{% url 'documento_pdf' doc.id %}"
                         data-email-url="{% url 'documento_enviar_email' doc.id %}"
-                        data-corpo="{{ item.corpo_html }}">
+                        data-corpo="{{ item.corpo_html|force_escape }}">
                     </div>
                 </template>
                 {% endwith %}

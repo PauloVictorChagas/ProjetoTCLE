@@ -6,21 +6,33 @@
             <i data-lucide="lock-keyhole" class="w-8 h-8 text-blue-600"></i>
             <div>
                 <h1 class="text-xl font-bold text-slate-900">Nova Senha</h1>
-                <p class="text-sm text-slate-500">Este é seu primeiro acesso.</p>
+                <p class="text-sm text-slate-500">{% if primeiro_acesso %}Este é seu primeiro acesso.{% else %}Altere a senha da sua conta.{% endif %}</p>
             </div>
         </div>
 
         <form method="POST" class="space-y-4" onsubmit="return validarTrocaSenha()">
             {% csrf_token %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="p-3 rounded-md text-sm {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% if not primeiro_acesso %}
+            <div>
+                <label class="text-sm font-medium text-slate-700">Senha atual</label>
+                <input type="password" name="senha_atual" id="senha_atual" required autocomplete="current-password"
+                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
+            </div>
+            {% endif %}
             <div>
                 <label class="text-sm font-medium text-slate-700">Digite a Nova Senha</label>
-                <input type="password" name="senha1" id="senha1" required minlength="8"
+                <input type="password" name="senha1" id="senha1" required minlength="8" maxlength="128" autocomplete="new-password"
                     class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
                 <p class="text-xs text-slate-400 mt-1">Mínimo de 8 caracteres, com letra, número e caractere especial. Sem números em sequência (ex.: 12, 321, 456).</p>
             </div>
             <div>
                 <label class="text-sm font-medium text-slate-700">Confirme a Nova Senha</label>
-                <input type="password" name="senha2" id="senha2" required minlength="8"
+                <input type="password" name="senha2" id="senha2" required minlength="8" maxlength="128" autocomplete="new-password"
                     class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
             </div>
             <button type="submit"

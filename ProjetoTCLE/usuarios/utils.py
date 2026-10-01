@@ -1,3 +1,6 @@
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
 from .models import Instituicao
 
 
@@ -26,3 +29,16 @@ def senha_pendente(user):
     senha provisória de ninguém.
     """
     return bool(user.is_authenticated and user.primeiro_acesso and not user.is_superuser)
+
+
+def validar_senha(senha, user=None):
+    """
+    Aplica TODOS os validadores de AUTH_PASSWORD_VALIDATORS (política do sistema,
+    senhas comuns, semelhança com nome/e-mail...). Devolve a lista de mensagens
+    de erro (vazia = senha aceita).
+    """
+    try:
+        validate_password(senha or '', user=user)
+    except ValidationError as exc:
+        return list(exc.messages)
+    return []
